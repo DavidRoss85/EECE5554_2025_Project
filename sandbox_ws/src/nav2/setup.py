@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'map_test = nav2.occupancy_grid:main'
         ],
     },
 )
