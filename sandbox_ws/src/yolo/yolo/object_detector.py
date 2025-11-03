@@ -3,6 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from yolo_interfaces.msg import YoloFrame, YoloItem
 
 # OpenCV imports
 import cv2      #pip3 install opencv-python
@@ -19,16 +20,18 @@ from ultralytics import YOLO #pip3 install typeguard ultralytics
 YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
 DEFAULT_YOLO_MODEL = 'yolov8s.pt'
 DEFAULT_IMAGE_TOPIC = '/oakd/rgb/preview/image_raw'
+DEFAULT_PUBLISH_TOPIC = '/yolo_detection'
 DEFAULT_IMAGE_CONVERSION = 'bgr8'
 
 class TurtleBotYoloDetector(Node):
     __DEFAULT_MAX = 10
     __DEFAULT_THRESHOLD = 0.5
     __DEFAULT_FEED_SHOW = True
+    __DEFAULT_SHOULD_PUBLISH = True
     __DEFAULT_LINE_THICKNESS = 2
     __DEFAULT_FONT_SCALE = 0.5
     #----------------------------------------------------------------------------------
-    def __init__(self, model:str= DEFAULT_YOLO_MODEL, image_topic:str=DEFAULT_IMAGE_TOPIC, show_feed:bool=__DEFAULT_FEED_SHOW):
+    def __init__(self, model:str= DEFAULT_YOLO_MODEL, image_topic:str=DEFAULT_IMAGE_TOPIC, show_feed:bool=__DEFAULT_FEED_SHOW, publish:bool=__DEFAULT_SHOULD_PUBLISH,pub_topic:str=DEFAULT_PUBLISH_TOPIC):
         super().__init__('turtle_object_detector')
         self.__model_name = model   # Name of Model
         self.__bridge = CvBridge()  # Image Conversion
@@ -48,16 +51,43 @@ class TurtleBotYoloDetector(Node):
         self.__wanted_list = []
         self.__show_cv_feed = show_feed
 
+        self.__should_publish_info = publish
+        self.__publish_topic = pub_topic
+        self.__image_subscription = None
+        self.__object_publisher = None
+        
+        self.__setup_topics()
+        self.__setup_windows()
+
+        self.get_logger().info(self.__start_message)
+
+    #----------------------------------------------------------------------------------
+    def __setup_windows(self):
+        if self.__show_cv_feed:
+            cv2.namedWindow("this",cv2.WINDOW_NORMAL)
+            # cv2.resizeWindow("this", 1920,1080)
+
+    #----------------------------------------------------------------------------------
+    def __setup_topics(self):
+        # Sub topic:
         self.__image_subscription = self.create_subscription(
             Image,
             self.__image_topic,
             self.__process_image,
             self.__max_msgs
         )
-        cv2.namedWindow("this",cv2.WINDOW_NORMAL)
-        # cv2.resizeWindow("this", 1920,1080)
-        self.get_logger().info(self.__start_message)
 
+        # Pub topic
+        if self.__should_publish_info:
+            self.__object_publisher = self.create_publisher(
+                YoloFrame, 
+                self.__publish_topic,
+                self.__max_msgs
+            )
+        
+    #----------------------------------------------------------------------------------
+    def __publish_data(self, message:YoloFrame):
+        self.__object_publisher.publish(message)
     #----------------------------------------------------------------------------------
     def __process_image(self,message:Image):
         # Convert ros2 message to image:
@@ -107,10 +137,36 @@ class TurtleBotYoloDetector(Node):
                         text = item_name,
                         bgr = self.__bgr_font_color
                     )
+
+        # Publish info if flag is set
+        if self.__should_publish_info:
+            message = self.__generate_publish_message()
+            self.__publish_data(message)
+
+        # Show feed if flag is set
         if self.__show_cv_feed:
             cv2.imshow("this",self.__annotated_image)
             cv2.waitKey(1)
 
+    #----------------------------------------------------------------------------------
+    def __generate_publish_message(self):
+        pub_image_raw = self.__bridge.cv2_to_imgmsg(self.__pure_image)
+        pub_image_annotated = self.__bridge.cv2_to_imgmsg(self.__annotated_image)
+        pub_item_list = []
+        for item in self.__detected_list:
+            pub_item = YoloItem()
+            pub_item.name = item.name
+            pub_item.xyxy = item.xyxy
+            pub_item.confidence = item.confidence
+
+            pub_item_list.append(pub_item)
+
+        pub_frame_message = YoloFrame()
+        pub_frame_message.image_raw = pub_image_raw
+        pub_frame_message.image_annotated = pub_image_annotated
+        pub_frame_message.item_list = pub_item_list
+
+        return pub_frame_message
     #----------------------------------------------------------------------------------
     def __meets_critera(self, box):
         # If confidence is over threshold
