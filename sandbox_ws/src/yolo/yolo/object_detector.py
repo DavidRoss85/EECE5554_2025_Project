@@ -21,9 +21,10 @@ YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
 DEFAULT_YOLO_MODEL = 'yolov8s.pt'
 DEFAULT_IMAGE_TOPIC = '/oakd/rgb/preview/image_raw'
 DEFAULT_PUBLISH_TOPIC = '/yolo_detection'
-DEFAULT_IMAGE_CONVERSION = 'bgr8'
+DEFAULT_IMAGE_CONVERSION = 'passthrough' #'bgr8'
 
 class TurtleBotYoloDetector(Node):
+    # Default values:
     __DEFAULT_MAX = 10
     __DEFAULT_THRESHOLD = 0.5
     __DEFAULT_FEED_SHOW = True
@@ -33,12 +34,10 @@ class TurtleBotYoloDetector(Node):
     #----------------------------------------------------------------------------------
     def __init__(self, model:str= DEFAULT_YOLO_MODEL, image_topic:str=DEFAULT_IMAGE_TOPIC, show_feed:bool=__DEFAULT_FEED_SHOW, publish:bool=__DEFAULT_SHOULD_PUBLISH,pub_topic:str=DEFAULT_PUBLISH_TOPIC):
         super().__init__('turtle_object_detector')
+        # Model Variables:
         self.__model_name = model   # Name of Model
         self.__bridge = CvBridge()  # Image Conversion
         self.__model = YOLO(self.__model_name)  #  Load YOLO Model
-        self.__image_topic = image_topic    #Subscription topic for image
-        self.__max_msgs = self.__DEFAULT_MAX
-        self.__start_message = 'Starting Object Detection Node.'
 
         self.__bgr_font_color = (0,255,0)
         self.__bgr_box_color = (255,0,0)
@@ -48,14 +47,19 @@ class TurtleBotYoloDetector(Node):
         self.__annotated_image = None   #Stores the image with boxes and identifiers
         self.__detection_threshold = self.__DEFAULT_THRESHOLD   # Threshold for detecting items
         self.__detected_list = []   #Stores a list of detected items
-        self.__wanted_list = []
-        self.__show_cv_feed = show_feed
+        self.__wanted_list = [] # Update this list to filter detections
+        self.__show_cv_feed = show_feed # Set to True to view camera feed live
 
-        self.__should_publish_info = publish
-        self.__publish_topic = pub_topic
-        self.__image_subscription = None
-        self.__object_publisher = None
+        # Node Variables
+        self.__max_msgs = self.__DEFAULT_MAX
+        self.__start_message = 'Starting Object Detection Node.'
+        self.__image_topic = image_topic    #Subscription topic for image
+        self.__should_publish_info = publish    # Set to true to publish data
+        self.__publish_topic = pub_topic    # Topic to publish to
+        self.__image_subscription = None    # Subscription object
+        self.__object_publisher = None  # Publisher object
         
+        # Set up parameters:
         self.__setup_topics()
         self.__setup_windows()
 
@@ -63,12 +67,14 @@ class TurtleBotYoloDetector(Node):
 
     #----------------------------------------------------------------------------------
     def __setup_windows(self):
+        """Sets window values"""
         if self.__show_cv_feed:
             cv2.namedWindow("this",cv2.WINDOW_NORMAL)
             # cv2.resizeWindow("this", 1920,1080)
 
     #----------------------------------------------------------------------------------
     def __setup_topics(self):
+        """Sets the topics for publishing and subscribing"""
         # Sub topic:
         self.__image_subscription = self.create_subscription(
             Image,
@@ -87,11 +93,17 @@ class TurtleBotYoloDetector(Node):
         
     #----------------------------------------------------------------------------------
     def __publish_data(self, message:YoloFrame):
+        """Publishes the specified message"""
         self.__object_publisher.publish(message)
     #----------------------------------------------------------------------------------
     def __process_image(self,message:Image):
+        """
+        Takes an image in ROS2 message format and processes it 
+        through the YOLO model. If flags are set, it will publish
+        the data, or show on screen
+        """
         # Convert ros2 message to image:
-        cv_image = self.__bridge.imgmsg_to_cv2(message)
+        cv_image = self.__bridge.imgmsg_to_cv2(message,DEFAULT_IMAGE_CONVERSION)
         # Pass frame through model and return results:
         results = self.__model(cv_image, verbose=False)[0]
         # Save original image:
@@ -150,6 +162,11 @@ class TurtleBotYoloDetector(Node):
 
     #----------------------------------------------------------------------------------
     def __generate_publish_message(self):
+        """
+        Generates a message to publish based on information
+        stored within the object
+        returns: YoloFrame
+        """
         pub_image_raw = self.__bridge.cv2_to_imgmsg(self.__pure_image)
         pub_image_annotated = self.__bridge.cv2_to_imgmsg(self.__annotated_image)
         pub_item_list = []
@@ -169,6 +186,9 @@ class TurtleBotYoloDetector(Node):
         return pub_frame_message
     #----------------------------------------------------------------------------------
     def __meets_critera(self, box):
+        """
+        Criteria for identifying an object
+        """
         # If confidence is over threshold
         if box.conf < self.__detection_threshold:
             return False
@@ -180,7 +200,7 @@ class TurtleBotYoloDetector(Node):
         return True
     #----------------------------------------------------------------------------------
     def __add_bounding_box_to_image(self, image, xyxy=[0,0,0,0],bgr:tuple=(0,0,0),thickness:int=1):
-        #Draw a rectangle at the given coordinates
+        """Draw a rectangle at the given coordinates"""
         cv2.rectangle(
             image, 
             (xyxy[0],xyxy[1]),
@@ -191,7 +211,7 @@ class TurtleBotYoloDetector(Node):
         return image
     #----------------------------------------------------------------------------------
     def __add_text_to_image(self, image, x:int=0, y:int=0, text='',bgr:tuple=(0,0,0),font=cv2.FONT_HERSHEY_SIMPLEX,thickness=1):
-        #Modify image with text at location
+        """Modify image with text at location"""
         cv2.putText(
             image,
             text,
@@ -204,11 +224,59 @@ class TurtleBotYoloDetector(Node):
         )
         return image
     #----------------------------------------------------------------------------------
+    def shutdown_clean(self):
+        cv2.destroyAllWindows()
+    #----------------------------------------------------------------------------------
     #Getters:
-    def get_pure_image(self):
+    def get_raw_image(self):
         return self.__pure_image
+    
     def get_annotated_image(self):
         return self.__annotated_image
+    
+    def get_detected_list(self):
+        return self.__detected_list
+    #----------------------------------------------------------------------------------
+    #Setters:
+    def set_publish_data(self,value:bool):
+        self.__should_publish_info=value
+
+    def set_publish_topic(self,topic:str):
+        self.__publish_topic = topic
+
+    def set_subscribe_topic(self, topic:str):
+        self.__image_topic = topic
+
+    def set_start_message(self, message:str):
+        self.__start_message = message
+
+    def set_show_cv_feed(self, value:bool):
+        self.__show_cv_feed = value
+
+    def set_wanted_list(self, list_of_items:list=[]):
+        """provide a list of items as strings that the model should detect"""
+        self.__wanted_list= list_of_items
+
+    def set_detection_threshold(self, confidence:float=0.5):
+        self.__detection_threshold = confidence
+
+    def set_box_thickness(self, thickness=1):
+        self.__line_thickness = thickness
+
+    def set_box_color_rgb(self, r=0,g=0,b=0):
+        b = b if b>=0 and b<=255 else 0
+        g = g if g>=0 and g<=255 else 0
+        r = r if r>=0 and r<=255 else 0
+        self.__bgr_box_color = (b,g,r)
+
+    def set_font_color_rgb(self, r=0,g=0,b=0):
+        b = b if b>=0 and b<=255 else 0
+        g = g if g>=0 and g<=255 else 0
+        r = r if r>=0 and r<=255 else 0
+        self.__bgr_font_color = (b,g,r)
+
+    def set_font_scale(self, scale:float=0.5):
+        self.__font_scale= scale
 
 #*******************************************************
 # Generic class to store detected objects data
@@ -224,6 +292,7 @@ def main(args=None):
     rclpy.init(args=args)
     detector = TurtleBotYoloDetector()
     rclpy.spin(detector)
+    detector.shutdown_clean()
     detector.destroy_node()
     rclpy.shutdown()
 
@@ -231,7 +300,3 @@ def main(args=None):
 if __name__ == '__main__':
     main()
         
-
-# Clean up
-# cap.release()
-# cv2.destroyAllWindows()
