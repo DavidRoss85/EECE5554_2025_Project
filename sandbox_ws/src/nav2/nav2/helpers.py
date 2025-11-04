@@ -35,7 +35,7 @@ def open_neighbors(node, grid,threshold=50):
             if grid[ni, nj] < threshold:  # threshold for free space
                 yield (ni, nj)
 
-def find_a_star_path(start, goal,grid=None,threshold=OPEN_CELL_THRESHOLD):
+def find_a_star_path(start, goal,grid=None,threshold=OPEN_CELL_THRESHOLD,weight=1.0):
     """
     Compute an A* path on a 2D occupancy grid.
     Args:
@@ -53,7 +53,8 @@ def find_a_star_path(start, goal,grid=None,threshold=OPEN_CELL_THRESHOLD):
     start = (sx,sy); goal = (gx,gy) #Ensure start/goal is immutable\
     
     open_set = []
-    heapq.heappush(open_set, (heuristic(start, goal), 0, start))
+    h=heuristic(start,goal) * weight
+    heapq.heappush(open_set, (h, 0, start))
     came_from = {}
     g_score = {start: 0}
 
@@ -77,7 +78,8 @@ def find_a_star_path(start, goal,grid=None,threshold=OPEN_CELL_THRESHOLD):
             tentative_g = g_score[current] + heuristic(current, neighbor)
             if neighbor not in g_score or tentative_g < g_score[neighbor]:
                 g_score[neighbor] = tentative_g
-                f_score = tentative_g + heuristic(neighbor, goal)
+                h = weight * heuristic(neighbor, goal)
+                f_score = tentative_g + h
                 heapq.heappush(open_set, (f_score, tentative_g, neighbor))
                 came_from[neighbor] = current
 

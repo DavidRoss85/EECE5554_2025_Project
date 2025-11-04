@@ -12,18 +12,20 @@ import matplotlib.pyplot as plt
 from .helpers import find_a_star_path, quaternion_to_yaw, inflate_obstacles
 
 DEFAULT_GRID_TOPIC = '/map'
-TURTLEBOT_WIDTH_METERS = 0.5
+TURTLEBOT_WIDTH_METERS = 0.36
 TURTLEBOT_ARROW_SCALE = 1.2
 
 class GridReader(Node):
     # Default values:
     __DEFAULT_MAX = 10
-    __DEFAULT_DRAW_INTERVAL = .1
-    __DEFAULT_GOAL = [0,0]
+    __DEFAULT_DRAW_INTERVAL = .5
+    __DEFAULT_GOAL = [10,10]
     __DEFAULT_FINDING = True
     __DEFAULT_PATH_LINE_COLOR = 'lime'
     __DEFAULT_PATH_LINE_WIDTH = 2
     __DEFAULT_PATH_LINE_STYLE = '-'
+    __DEFAULT_ARROW_HEAD_WIDTH = 5
+    __DEFAULT_ARROW_HEAD_LENGTH = 1
 
     #----------------------------------------------------------------------------------
     def __init__(self, sub_topic:str=DEFAULT_GRID_TOPIC):
@@ -53,6 +55,8 @@ class GridReader(Node):
         self.__path_line_color = self.__DEFAULT_PATH_LINE_COLOR
         self.__path_line_width = self.__DEFAULT_PATH_LINE_WIDTH
         self.__path_linestyle = self.__DEFAULT_PATH_LINE_STYLE
+        self.__arrow_head_width = self.__DEFAULT_ARROW_HEAD_WIDTH
+        self.__arrow_head_length = self.__DEFAULT_ARROW_HEAD_LENGTH
         self.__finding_path = self.__DEFAULT_FINDING
 
 
@@ -79,16 +83,16 @@ class GridReader(Node):
         
         origin_x, origin_y, resolution = self.__fetch_origin_and_resolution()
 
-        i = int((x - origin_x) / resolution)
-        j = int((y - origin_y) / resolution)
+        i = int((y - origin_y) / resolution)  # row
+        j = int((x - origin_x) / resolution)  # col
 
         return [i,j]
     #----------------------------------------------------------------------------------   
     def __convert_grid_to_world(self, i, j):
         origin_x, origin_y, resolution = self.__fetch_origin_and_resolution()
 
-        x = origin_x + i * resolution
-        y = origin_y + j * resolution
+        x = origin_x + j * resolution
+        y = origin_y + i * resolution
         return [x, y]
 
     #----------------------------------------------------------------------------------
@@ -127,11 +131,12 @@ class GridReader(Node):
         if self.__finding_path:
             ox,oy,res = self.__fetch_origin_and_resolution()
             inflated_map = inflate_obstacles(self.__map_data,self.__robot_width,res,51)
+            
             i,j = self.__convert_world_to_grid(x,y)
             k,l = self.__convert_world_to_grid(self.__location_goal[0],self.__location_goal[1])
 
             # path = find_a_star_path([i,j], [k,l],self.__map_data,51)
-            path = find_a_star_path([i,j], [k,l],inflated_map,50)
+            path = find_a_star_path([i,j], [k,l],inflated_map,51,1.5)
         
             self.__plot_path_on_map(path)
 
@@ -152,18 +157,18 @@ class GridReader(Node):
         i,j= self.__convert_world_to_grid(x,y)
 
         # Redraw robot marker
-        self.ax.plot(i, j, 'ro', markersize=(self.__robot_width / resolution))  # red circle marker
+        self.ax.plot(j, i, 'ro', markersize=(self.__robot_width / resolution))  # red circle marker
         # Draw direction arrow (scaled to grid)
         arrow_length = self.__robot_arrow_length / resolution  # in grid cells
-        dx = arrow_length * math.cos(yaw)
-        dy = arrow_length * math.sin(yaw)
-        self.ax.arrow(i, j, dx, dy, head_width=5, head_length=5, fc='r', ec='r')
+        dj = arrow_length * math.cos(yaw)
+        di = arrow_length * math.sin(yaw)
+        self.ax.arrow(j, i, dj, di, head_width=self.__arrow_head_width, head_length=self.__arrow_head_length, fc='r', ec='r')
 
 
     def __handle_error(self,e:Exception, function_location:str='',msg:str='',show_exception:bool=False):
         self.get_logger().warn(f'An error occured in {function_location}\n{msg}\n{e if show_exception else ""}')
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++==
+    #----------------------------------------------------------------------------------
     def __plot_path_on_map(self, path):
         """
         Plots an A* path (list of [x, y] world coords) on the current occupancy map.
@@ -177,10 +182,10 @@ class GridReader(Node):
             return
 
         # Separate for plotting
-        x_vals = [p[0] for p in path]
-        y_vals = [p[1] for p in path]
+        i_vals = [p[0] for p in path]
+        j_vals = [p[1] for p in path]
 
-        self.ax.plot(x_vals, y_vals, color=self.__path_line_color, linewidth=self.__path_line_width, linestyle=self.__path_linestyle)
+        self.ax.plot(j_vals, i_vals, color=self.__path_line_color, linewidth=self.__path_line_width, linestyle=self.__path_linestyle)
 
         return
 
