@@ -19,7 +19,7 @@ class GridReader(Node):
     # Default values:
     __DEFAULT_MAX = 10
     __DEFAULT_DRAW_INTERVAL = .5
-    __DEFAULT_GOAL = [10,10]
+    __DEFAULT_GOAL = [10,15]
     __DEFAULT_FINDING = True
     __DEFAULT_PATH_LINE_COLOR = 'lime'
     __DEFAULT_PATH_LINE_WIDTH = 2
@@ -178,7 +178,7 @@ class GridReader(Node):
             # self.get_logger().warn("Map not available.")
             return
         if not path:
-            # self.get_logger().warn("Empty path.")
+            self.get_logger().warn("Empty path.")
             return
 
         # Separate for plotting

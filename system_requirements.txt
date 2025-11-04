@@ -25,7 +25,7 @@ ros2 launch turtlebot4_gz_bringup turtlebot4_gz.launch.py
 
 # Nav2 stack:
 #SLAM toolbox: Publishes /map (Occupancy Grid)
-ros2 launch slam_toolbox online_async_launch.py use_sim_time:=false
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=true params_file:=fast_slam.yaml
 
 
 # Nav2 bringup
