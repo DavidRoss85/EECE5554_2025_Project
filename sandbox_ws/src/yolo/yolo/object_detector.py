@@ -13,8 +13,8 @@ from cv_bridge import CvBridge
 from ultralytics import YOLO #pip3 install typeguard ultralytics
 #Ultralytics glitch when attempting to build. Use export to ensure proper import:
 # export PYTHONPATH=</path/to/your/virtual/environment>/lib/python3.12/site-packages:$PYTHONPATH
-# export PYTHONPATH=~/Desktop/EECE5554/EECE5554_2025_Project/sandbox_venv/lib/python3.12/site-packages:$PYTHONPATH
-# export PYTHONPATH=/home/david-ross/gitRepos/EECE5554_2025_Project/sandbox_venv/lib/python3.12/site-packages:$PYTHONPATH
+# export PYTHONPATH=~/Desktop/EECE5554/EECE5554_2025_Project/venv/lib/python3.12/site-packages:$PYTHONPATH
+# export PYTHONPATH=/home/david-ross/gitRepos/EECE5554_2025_Project/venv/lib/python3.12/site-packages:$PYTHONPATH
 
 # Global Constants:
 YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
