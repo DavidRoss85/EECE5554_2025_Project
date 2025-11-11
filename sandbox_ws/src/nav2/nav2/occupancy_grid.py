@@ -126,7 +126,7 @@ class GridReader(Node):
     def __plot_map(self):
         if self.__map_data is None:
             return
-        inverted_map = cv2.flip(self.__map_data,1)
+        inverted_map = cv2.transpose(self.__map_data,1)
         cv2.imshow("Occupancy",inverted_map)
         cv2.waitKey(1)
 

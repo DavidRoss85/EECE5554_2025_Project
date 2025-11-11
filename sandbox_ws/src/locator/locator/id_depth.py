@@ -76,7 +76,7 @@ class DepthAssign(Node):
         depth_image = cv2.normalize(depth_image,None,0,255,cv2.NORM_MINMAX).astype(np.uint8)
         results = self.__model(cv_image,verbose=False)[0]
         detected_list=[]
-
+        annotated_image = results.plot()
 
         # Get items and label if meet criteria
         if results.boxes is not None:
@@ -96,13 +96,40 @@ class DepthAssign(Node):
                         # Remember to flip coords for np arrays (x=yc, y=xc)
                         print(f"Depth: {self.__depth_map[yc,xc] if self.__depth_map is not None else 0}")
                         depth_image[yc,xc] = 255
+                        
+                        # Add text with item's name/type to annotated frame
+                        annotated_image =  self.__add_text_to_image(
+                            annotated_image,
+                            x = xc,
+                            y = yc,
+                            text = f"{self.__depth_map[yc,xc]:.2f}m away",
+                            bgr = (0,255,0)
+                        )
 
-        annotated_image = results.plot()
+        
         cv2.imshow("this",annotated_image)
  
         cv2.imshow("depth", depth_image)
         cv2.waitKey(1)
 
+    def __calculate_depth(self,f,b,d):
+        if d <= 0: return 0
+        return (f*b)/d
+    #----------------------------------------------------------------------------------
+    def __add_text_to_image(self, image, x:int=0, y:int=0, text='',bgr:tuple=(0,0,0),font=cv2.FONT_HERSHEY_SIMPLEX,thickness=1):
+        """Modify image with text at location"""
+        fontscale = 0.5
+        cv2.putText(
+            image,
+            text,
+            (x,y),
+            font,
+            fontscale,
+            bgr,
+            thickness=thickness,
+            lineType=cv2.LINE_AA
+        )
+        return image
 def main(args=None):
     rclpy.init(args=args)
     detector = DepthAssign()
