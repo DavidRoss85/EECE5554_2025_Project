@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 
 from .helpers import find_a_star_path, quaternion_to_yaw, inflate_obstacles
 
+import cv2
+
 DEFAULT_GRID_TOPIC = '/map'
 TURTLEBOT_WIDTH_METERS = 0.36
 TURTLEBOT_ARROW_SCALE = 1.2
@@ -59,12 +61,17 @@ class GridReader(Node):
         self.__arrow_head_length = self.__DEFAULT_ARROW_HEAD_LENGTH
         self.__finding_path = self.__DEFAULT_FINDING
 
+        #Test area:
+        cv2.namedWindow("Occupancy",cv2.WINDOW_NORMAL)
 
         self.get_logger().info('Up and running')
     #----------------------------------------------------------------------------------
     def __interpret_map(self, msg):
         self.__map_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
         self.__map_data[self.__map_data == -1] = 50  # unknown → gray
+        self.__map_data[self.__map_data == 0] = 99 
+        self.__map_data[self.__map_data == 100] = 0  
+        # self.__map_data[self.__map_data == -1] = 0  
         self.__map_info = msg.info
         self.__save_map_data()
 
@@ -119,6 +126,12 @@ class GridReader(Node):
     def __plot_map(self):
         if self.__map_data is None:
             return
+        inverted_map = cv2.flip(self.__map_data,1)
+        cv2.imshow("Occupancy",inverted_map)
+        cv2.waitKey(1)
+
+        return
+    
         self.ax.clear()
 
         self.ax.imshow(self.__map_data, cmap='gray_r', origin='lower')

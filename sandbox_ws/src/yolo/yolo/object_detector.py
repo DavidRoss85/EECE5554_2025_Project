@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-# from yolo_interfaces.msg import YoloFrame, YoloItem
+from yolo_interfaces.msg import YoloFrame, YoloItem
 
 # OpenCV imports
 import cv2      #pip3 install opencv-python
@@ -23,12 +23,12 @@ DEFAULT_IMAGE_TOPIC = '/oakd/rgb/preview/image_raw'
 DEFAULT_PUBLISH_TOPIC = '/yolo_detection'
 DEFAULT_IMAGE_CONVERSION = 'passthrough' #'bgr8'
 
-class YoloFrame():
-    def __init__(self):
-        pass
-class YoloItem():
-    def __init__(self):
-        pass
+# class YoloFrame():
+#     def __init__(self):
+#         pass
+# class YoloItem():
+#     def __init__(self):
+#         pass
 
 class TurtleBotYoloDetector(Node):
     # Default values:
