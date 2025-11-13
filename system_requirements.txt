@@ -28,5 +28,18 @@ ros2 launch turtlebot4_gz_bringup turtlebot4_gz.launch.py
 ros2 launch slam_toolbox online_async_launch.py use_sim_time:=true params_file:=fast_slam.yaml
 
 
-# Nav2 bringup
+#Install Nav2 binaries:
+sudo apt install ros-jazzy-navigation2
 sudo apt install ros-jazzy-nav2-bringup
+sudo apt install ros-jazzy-nav2-minimal-tb*
+sudo apt install ros-jazzy-nav2-route #This one is missing from the website
+
+#---------------------------------------------------------------
+#Tools for ROS:
+#Install ROS Commons:
+sudo apt update
+sudo apt install ros-jazzy-turtlebot4-description \
+ros-jazzy-turtlebot4-msgs \
+ros-jazzy-turtlebot4-navigation \
+ros-jazzy-turtlebot4-node
+
