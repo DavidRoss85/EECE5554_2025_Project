@@ -24,6 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'robo_sync_node = object_location.robo_sync_node:main',
+            'detection_node = object_location.detection_node:main'
         ],
     },
 )
