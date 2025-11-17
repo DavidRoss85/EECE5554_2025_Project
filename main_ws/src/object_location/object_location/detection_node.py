@@ -52,7 +52,7 @@ class DetectionNode(Node):
 
     def __init__(self):
         super().__init__('detection_node')
-        self.get_logger().info('Initializing DetectionNode...')
+        self.get_logger().info('Initializing Detection Node...')
 
         #Variables:
         self.__model_name = self.DEFAULT_YOLO_MODEL_PATH
@@ -132,14 +132,19 @@ class DetectionNode(Node):
                     # Get box coordinates:
                     x1,y1,x2,y2 = map(int,box.xyxy[0].tolist()) #Convert tensor to list
                     box_coords = [x1,y1,x2,y2]
+
+                    xc,yc,w,h = map(int,box.xywh[0].tolist()) #Grab center of box
+                    box_center = [xc,yc,w,h]
+
                     # Get box name:
                     item_name = self.__model.names[int(box.cls)]    # Convert item index to name
 
                     # Create an object to hold detected information
                     detected_object = DetectedObject(
-                        box_coords,
-                        item_name,
-                        float(box.conf)
+                        xyxy=box_coords,
+                        xywh=box_center,
+                        name=item_name,
+                        confidence=float(box.conf)
                     )
                     
                     # Add to list:
@@ -189,6 +194,7 @@ class DetectionNode(Node):
             pub_item = DetectedItem()
             pub_item.name = item.name
             pub_item.xyxy = item.xyxy
+            pub_item.xywh = item.xywh
             pub_item.confidence = item.confidence
 
             pub_item_list.append(pub_item)
@@ -251,8 +257,9 @@ class DetectionNode(Node):
 #*******************************************************
 # Generic class to store detected objects data
 class DetectedObject:
-    def __init__(self, xyxy:list=[0,0,0,0],name:str='',confidence:float=0.0):
+    def __init__(self, xyxy:list=[0,0,0,0], xywh:list =[0,0,0,0], name:str='',confidence:float=0.0):
         self.xyxy = xyxy
+        self.xywh = xywh
         self.name = name
         self.confidence = confidence
 

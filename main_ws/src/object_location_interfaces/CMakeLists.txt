@@ -18,6 +18,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectionList.msg"
   "msg/RoboSync.msg"
   "msg/RSyncDetectionList.msg"
+  "msg/ItemLocation.msg"
+  "msg/LocationList.msg"
+  "msg/RSyncLocationList.msg"
   DEPENDENCIES std_msgs # Declare dependency on std_msgs here
   DEPENDENCIES sensor_msgs
   DEPENDENCIES geometry_msgs

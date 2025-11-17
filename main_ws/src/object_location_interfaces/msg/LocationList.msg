@@ -1,0 +1,2 @@
+std_msgs/Header header
+object_location_interfaces/ItemLocation[] location_list
