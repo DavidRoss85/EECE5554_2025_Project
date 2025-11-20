@@ -32,7 +32,7 @@ DEFAULT_GRID_TOPIC = '/map'
 TURTLEBOT_WIDTH_METERS = 0.36
 TURTLEBOT_ARROW_SCALE = 1.2
 
-DEPTH_TOPIC = '/oakd/rgb/preview/depth'
+DEPTH_TOPIC = '/oakd/stereo/image_raw/compressedDepth' #'/oakd/rgb/preview/depth'
 MAX_MSG = 10
 DEFAULT_IMAGE_CONVERSION = 'passthrough' #'bgr8'
 

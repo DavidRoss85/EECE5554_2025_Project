@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'id_test = locator.id_depth:main'
+            'id_test = locator.id_depth:main',
+            'test_topic = locator.test_depth_topic:main'
         ],
     },
 )
