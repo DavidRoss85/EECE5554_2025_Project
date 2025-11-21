@@ -13,23 +13,17 @@ import math
 import numpy as np
 
 # Global Constants:
-YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
-DEFAULT_YOLO_MODEL = 'yolov8s.pt'
+
+DEFAULT_IMAGE_CONVERSION = 'passthrough' #'bgr8'
+
 DEFAULT_IMAGE_TOPIC = '/oakd/rgb/preview/image_raw'
-DEFAULT_PUBLISH_TOPIC = '/yolo_detection'
-DEFAULT_IMAGE_CONVERSION = 'passthrough' #'bgr8'
-
-
-DEFAULT_GRID_TOPIC = '/map'
-TURTLEBOT_WIDTH_METERS = 0.36
-TURTLEBOT_ARROW_SCALE = 1.2
-
+# DEPTH_TOPIC = '/oakd/right/image_raw' #'/oakd/stereo/image_raw/compressedDepth' #'/oakd/rgb/preview/depth'
 DEPTH_TOPIC = '/oakd/stereo/image_raw' #'/oakd/rgb/preview/depth'
-MAX_MSG = 10
-DEFAULT_IMAGE_CONVERSION = 'passthrough' #'bgr8'
+# DEPTH_TOPIC = '/oakd/left/image_raw' #'/oakd/stereo/image_raw/compressedDepth' #'/oakd/rgb/preview/depth'
 
-FOCAL_LENGTH = 870.0
-BASELINE = 0.075
+
+MAX_MSG = 10
+
 
 
 class DepthAssign(Node):
@@ -55,7 +49,12 @@ class DepthAssign(Node):
 
     def __process_depth(self, msg:Image):
         print("Received depth data")
+        # return
+        cv_image = self.__bridge.imgmsg_to_cv2(msg,DEFAULT_IMAGE_CONVERSION)
+        cv2.imshow("depth",cv_image)
+        cv2.waitKey(1)
 
+        return 
         cv_image = self.__bridge.imgmsg_to_cv2(msg,DEFAULT_IMAGE_CONVERSION)
         self.__depth_map = np.clip(cv_image,0,100)
         depth_image = np.clip(self.__depth_map,0,100)
@@ -66,6 +65,7 @@ class DepthAssign(Node):
 
 
     def __process_image(self,msg:Image):
+        # print("Image Received")
         
         cv_image = self.__bridge.imgmsg_to_cv2(msg,DEFAULT_IMAGE_CONVERSION)
         cv2.imshow("this",cv_image)
