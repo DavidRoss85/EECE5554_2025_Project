@@ -37,7 +37,7 @@ class DetectionNode(Node):
 
     # YOLO
     YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
-    DEFAULT_YOLO_MODEL_PATH = 'yolov8n.pt'  # Use yolov8n.pt for nano model
+    DEFAULT_YOLO_MODEL_PATH = YOLO_MODEL_LIST[2]  # Use yolov8n.pt for nano model
     DEFAULT_CONFIDENCE_THRESHOLD = 0.8
 
     #OpenCV
@@ -83,6 +83,8 @@ class DetectionNode(Node):
 
         self.__model = YOLO(self.__model_name)
         self.get_logger().info(f'YOLO model loaded from: {self.__model_name}')
+        self.get_logger().info(f'Model confidence threshold set to: {self.__detection_threshold}')
+        self.get_logger().info(f'Number of items in dataset: {len(self.__model.names)}')
 
         try:
             # Subscriber
