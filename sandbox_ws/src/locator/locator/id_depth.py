@@ -32,7 +32,7 @@ DEFAULT_GRID_TOPIC = '/map'
 TURTLEBOT_WIDTH_METERS = 0.36
 TURTLEBOT_ARROW_SCALE = 1.2
 
-DEPTH_TOPIC = '/oakd/stereo/image_raw/compressedDepth' #'/oakd/rgb/preview/depth'
+DEPTH_TOPIC = '/oakd/stereo/image_raw' #'/oakd/rgb/preview/depth'
 MAX_MSG = 10
 DEFAULT_IMAGE_CONVERSION = 'passthrough' #'bgr8'
 
@@ -61,22 +61,34 @@ class DepthAssign(Node):
         )
 
         self.__depth_map = None
+        self.__depth_min = 0
+        self.__depth_max = 1
+        cv2.namedWindow("this",cv2.WINDOW_NORMAL)
+        cv2.namedWindow("depth",cv2.WINDOW_NORMAL)
 
     def __process_depth(self, msg:Image):
         cv_image = self.__bridge.imgmsg_to_cv2(msg,DEFAULT_IMAGE_CONVERSION)
-        self.__depth_map = np.clip(cv_image,0,100)
+        self.__depth_map = cv_image #np.clip(cv_image,0,100)
+        depth_array = np.array(cv_image)
+        self.__depth_min = min(self.__depth_min,depth_array.min())
+        self.__depth_max = max(self.__depth_max, depth_array.max())
+        print(f"min: {self.__depth_min}, max: {self.__depth_max}")
 
 
     def __process_image(self,msg:Image):
         if self.__depth_map is None:
+            print("Image recd")
+            # cv_image = self.__bridge.imgmsg_to_cv2(msg,DEFAULT_IMAGE_CONVERSION)
+            # cv2.imshow("this",cv_image)
+            # cv2.waitKey(1)
             return
         
         cv_image = self.__bridge.imgmsg_to_cv2(msg,DEFAULT_IMAGE_CONVERSION)
-        depth_image = np.clip(self.__depth_map,0,100)
-        depth_image = cv2.normalize(depth_image,None,0,255,cv2.NORM_MINMAX).astype(np.uint8)
+        depth_image = np.clip(self.__depth_map,0,65535)
+        depth_image = cv2.normalize(depth_image,None,0,100,cv2.NORM_MINMAX).astype(np.uint8)
         results = self.__model(cv_image,verbose=False)[0]
         detected_list=[]
-        annotated_image = results.plot()
+        annotated_image = cv_image #results.plot()
 
         # Get items and label if meet criteria
         if results.boxes is not None:
@@ -92,19 +104,20 @@ class DepthAssign(Node):
                     item_name = self.__model.names[int(box.cls)]    # Convert item index to name
 
                     if item_name == 'person':
-                        print(f"Person: {xc},{yc}")
-                        # Remember to flip coords for np arrays (x=yc, y=xc)
-                        print(f"Depth: {self.__depth_map[yc,xc] if self.__depth_map is not None else 0}")
+                        # print(f"Person: {xc},{yc}")
+                        # # Remember to flip coords for np arrays (x=yc, y=xc)
+                        # print(f"Depth: {self.__depth_map[yc,xc] if self.__depth_map is not None else 0}")
                         depth_image[yc,xc] = 255
                         
                         # Add text with item's name/type to annotated frame
                         annotated_image =  self.__add_text_to_image(
-                            annotated_image,
+                            cv_image,
                             x = xc,
                             y = yc,
                             text = f"{self.__depth_map[yc,xc]:.2f}m away",
                             bgr = (0,255,0)
                         )
+        
 
         
         cv2.imshow("this",annotated_image)
