@@ -26,7 +26,9 @@ setup(
         'console_scripts': [
             'robo_sync_node = object_location.robo_sync_node:main',
             'detection_node = object_location.detection_node:main',
-            'distance_node = object_location.distance_node:main'
+            'distance_node = object_location.distance_node:main',
+            'map_node = object_location.map_node:main',
+            'temp_viewer = object_location.temp_viewer:main',
         ],
     },
 )
