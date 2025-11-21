@@ -1,0 +1,27 @@
+/oakd:
+  ros__parameters:
+    camera:
+      i_enable_imu: false
+      i_enable_ir: false
+      i_floodlight_brightness: 0
+      i_laser_dot_brightness: 100
+      i_nn_type: none
+      i_pipeline_type: RGBD
+      i_usb_speed: SUPER
+    rgb:
+      i_board_socket_id: 0
+      i_fps: 15.0
+      i_interleaved: false
+      i_max_q_size: 10
+      i_preview_width: 320
+      i_preview_height: 240
+      i_enable_preview: true
+      i_low_bandwidth: true
+      i_keep_preview_aspect_ratio: true
+      i_publish_topic: true
+      i_resolution: '1080P'
+    stereo:
+      i_width: 320
+      i_height: 240
+      i_fps: 15.0
+    use_sim_time: false
