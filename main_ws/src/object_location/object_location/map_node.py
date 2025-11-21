@@ -43,6 +43,11 @@ class MapGenerator(Node):
         super().__init__('map_node')
         self.__grid_sub_topic = self.DEFAULT_OCCUPANCY_SUB_TOPIC
         self.__locations_sub_topic = self.DEFAULT_LOCATIONS_SUB_TOPIC
+
+        self.__overlay_map_topic = self.DEFAULT_OVERLAY_PUBLISH_TOPIC
+        self.__occupancy_map_topic = self.DEFAULT_OCCUPANCY_PUBLISH_TOPIC
+        self.__navigation_map_topic = self.DEFAULT_NAVIGATION_PUBLISH_TOPIC
+
         self.__max_msg = self.MAX_MSG
 
         self.__map_data = None
@@ -67,7 +72,11 @@ class MapGenerator(Node):
         )
 
         # Publishers
-        
+        self.__overlay_publisher = self.create_publisher(
+            OccupancyGrid,
+            self.__overlay_map_topic,
+            self.__max_msg
+        )
 
         # TF2 Buffer and Listener for robot pose
         self.__tf_buffer = Buffer()
@@ -142,17 +151,33 @@ class MapGenerator(Node):
 
         # Update overlay grid
         self.__add_to_location_overlay(item_world_locations)
+        
+        # Pulish updated overlay
+        overlay_msg = self.__generate_overlay_message()
+        self.__overlay_publisher.publish(overlay_msg)
     
     #----------------------------------------------------------------------------------
     def __add_to_location_overlay(self, item_world_locations):
         for item in item_world_locations:
             name, x, y = item
 
+            #STUB:
+            #DO I NEED TO CONVERT UNITS HERE? COME BACK TO THIS
             i,j = self.__convert_world_to_grid(x,y)
             
             if 0 <= i < self.__items_grid.shape[0] and 0 <= j < self.__items_grid.shape[1]:
                 self.__items_grid[i,j] = 101  # Mark detected item on overlay
 
+    #----------------------------------------------------------------------------------
+    def __generate_overlay_message(self):
+        """Build and return an OccupancyGrid message for the overlay map."""
+        
+        overlay_msg = OccupancyGrid()
+        overlay_msg.header.stamp = self.get_clock().now().to_msg()
+        overlay_msg.header.frame_id = 'overlay_map'
+        overlay_msg.info = self.__map_info
+        overlay_msg.data = self.__items_grid.flatten().astype(np.int8).tolist()
+        return overlay_msg
     #----------------------------------------------------------------------------------
     def __save_map_data(self):
         np.savetxt('./mapdata.txt',self.__map_data,delimiter=',',fmt='%.0f')
