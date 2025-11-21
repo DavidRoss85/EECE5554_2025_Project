@@ -1,4 +1,5 @@
-#This node will synchronize messages from multiple topics and republish them as a single synchronized message.
+#This node will synchronize messages from multiple topics
+#  and republish them as a single synchronized message.
 
 # ROS2 Imports
 import rclpy

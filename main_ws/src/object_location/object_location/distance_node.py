@@ -1,3 +1,7 @@
+# This node performs uses the detected objects and synchronized depth images
+# to compute the relative yaw and distance of each detected item.
+# It publishes this information as an RSyncLocationList message.
+
 # Math Imports:
 import math
 import numpy as np

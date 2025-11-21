@@ -1,3 +1,6 @@
+#This node performs object detection using a YOLO model on incoming RGB images
+# and publishes detected objects along with annotated images.
+
 # Math Imports:
 import math
 import numpy as np
