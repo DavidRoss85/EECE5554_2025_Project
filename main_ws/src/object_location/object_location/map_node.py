@@ -85,7 +85,7 @@ class MapGenerator(Node):
 
 
         #Test area:
-        cv2.namedWindow("Occupancy",cv2.WINDOW_NORMAL)
+        # cv2.namedWindow("Occupancy",cv2.WINDOW_NORMAL)
 
         self.get_logger().info('Up and running')
     #----------------------------------------------------------------------------------
@@ -102,7 +102,9 @@ class MapGenerator(Node):
                 self.__shift_location_overlay(old_info, new_info)   # Shift overlays
         else:
             # First time receiving map
-            self.get_logger().info('Occupancy grid received')    
+            self.get_logger().info('Occupancy grid received')
+            self.__items_grid = np.zeros((msg.info.height, msg.info.width))  # Initialize overlay grid
+            self.__navigation_grid = np.zeros((msg.info.height, msg.info.width))  # Initialize navigation grid    
 
         # Store new map data
         self.__map_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
@@ -171,7 +173,7 @@ class MapGenerator(Node):
     #----------------------------------------------------------------------------------
     def __generate_overlay_message(self):
         """Build and return an OccupancyGrid message for the overlay map."""
-        
+
         overlay_msg = OccupancyGrid()
         overlay_msg.header.stamp = self.get_clock().now().to_msg()
         overlay_msg.header.frame_id = 'overlay_map'

@@ -40,6 +40,13 @@ class TempViewer(Node):
             10
         )
 
+        self.__map_subscription = self.create_subscription(
+            OccupancyGrid,
+            '/map',
+            self.map_callback,
+            10
+        )
+
         self.__cv_bridge = CvBridge()
         cv2.namedWindow("Temp Viewer", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Overlay Map", cv2.WINDOW_NORMAL)
@@ -53,9 +60,27 @@ class TempViewer(Node):
         width = msg.info.width
         height = msg.info.height
         data = np.array(msg.data, dtype=np.int8).reshape((height, width))
+        data[data == 0] = 100
+        data[data == 101] = 0
 
         cv2.imshow("Overlay Map", data * 2)  # Scale for better visibility
         cv2.waitKey(1)
+
+    def map_callback(self, msg):
+        width = msg.info.width
+        height = msg.info.height
+        data = np.array(msg.data, dtype=np.int8).reshape((height, width))
+        data=data.transpose()
+        data[data == -1] = 50  # Set unknown cells to mid-gray for visualization
+        # data[data == 100] = 1    # Free space to black
+        # data[data == 0] = 100  # Occupied space to whited
+        # data[data == 1] = 0  # Unknown space to gray
+
+        cv2.imshow("Base Map", data * 2)  # Scale for better visibility
+        cv2.waitKey(1)
+        # For debugging purposes, we can print the shape of the map
+        # self.get_logger().info(f'Received map of size: {data.shape}')
+
 
 def main(args=None):
     rclpy.init(args=args)
