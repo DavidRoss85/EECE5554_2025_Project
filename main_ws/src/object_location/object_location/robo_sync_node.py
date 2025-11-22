@@ -87,10 +87,11 @@ class RoboSyncNode(Node):
         self.__depth_image = depth_msg
         self.__get_robot_pose()
 
+        sync_msg = RSync()
+        sync_msg.rgb_image = self.__rgb_image
+        sync_msg.depth_image = self.__depth_image
+        
         if self.__robot_pose is not None:
-            sync_msg = RSync()
-            sync_msg.rgb_image = self.__rgb_image
-            sync_msg.depth_image = self.__depth_image
             sync_msg.robot_pose = self.__robot_pose
 
         # When perfected, should publish only when all three messages are available
