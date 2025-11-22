@@ -69,7 +69,7 @@ class DetectionNode(Node):
         self.__font_scale = self.DEFAULT_FONT_SCALE
         self.__line_thickness = self.DEFAULT_LINE_THICKNESS
 
-        self.__show_cv_feed = False
+        self.__show_cv_feed = self.DEFAULT_FEED_SHOW
         self.__pure_image = None    #Stores the pure image returned from the camera
         self.__annotated_image = None   #Stores the image with boxes and identifiers
         self.__detection_threshold = self.DEFAULT_THRESHOLD   # Threshold for detecting items
