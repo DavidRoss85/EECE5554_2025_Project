@@ -26,26 +26,26 @@ class TempViewer(Node):
         super().__init__('temp_viewer')
         self.get_logger().info('Initializing Temp Viewer Node')
 
-        self.__image_subscription = self.create_subscription(
-            Image,
-            '/oakd/rgb/preview/image_raw',
-            self.image_callback,
-            10
-        )
+        # self.__image_subscription = self.create_subscription(
+        #     Image,
+        #     '/oakd/rgb/preview/image_raw',
+        #     self.image_callback,
+        #     10
+        # )
 
-        self.__overlay_subscription = self.create_subscription(
-            OccupancyGrid,
-            '/grid/overlay',
-            self.overlay_callback,
-            10
-        )
+        # self.__overlay_subscription = self.create_subscription(
+        #     OccupancyGrid,
+        #     '/grid/overlay',
+        #     self.overlay_callback,
+        #     10
+        # )
 
-        self.__map_subscription = self.create_subscription(
-            OccupancyGrid,
-            '/map',
-            self.map_callback,
-            10
-        )
+        # self.__map_subscription = self.create_subscription(
+        #     OccupancyGrid,
+        #     '/map',
+        #     self.map_callback,
+        #     10
+        # )
 
         self.__detection_vision = self.create_subscription(
             RSyncDetectionList,
@@ -58,6 +58,7 @@ class TempViewer(Node):
         cv2.namedWindow("Temp Viewer", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Overlay Map", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Base Map", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Detections", cv2.WINDOW_NORMAL)
 
     def image_callback(self, msg):
         cv_image = self.__cv_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
@@ -91,8 +92,9 @@ class TempViewer(Node):
         # self.get_logger().info(f'Received map of size: {data.shape}')
 
     def detection_vision_callback(self,msg):
+        print("Detection Vision Callback")
         cv_image = self.__cv_bridge.imgmsg_to_cv2( msg.detections.image_annotated)
-        cv2.imshow(cv_image)
+        cv2.imshow("Detections", cv_image)
         cv2.waitKey(1)
 
 def main(args=None):
