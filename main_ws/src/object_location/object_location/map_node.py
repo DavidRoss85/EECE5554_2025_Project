@@ -118,33 +118,55 @@ class MapGenerator(Node):
     #----------------------------------------------------------------------------------
 
     #----------------------------------------------------------------------------------
-    def __shift_location_overlay(self,old_info:OccupancyGrid.info,new_info:OccupancyGrid.info):
+    def __shift_location_overlay(self, old_info:OccupancyGrid.info, new_info:OccupancyGrid.info):
         """
         If the occupancy grid size changes, so does the position of values in the array. 
-         The origin is kept track of in the map_info. This is done automatically by the
-         slam toolbox, but not our generated data. We take the old origin and new 
-         originand compare the two to shift the values in the overlay accordingly.
+        The origin is kept track of in the map_info. This is done automatically by the
+        slam toolbox, but not our generated data. We take the old origin and new 
+        origin and compare the two to shift the values in the overlay accordingly.
         """
-        #Calculate shifts (Condense these into smaller equation later)
+
+        # Map resolution
         map_resolution = new_info.resolution
+
+        # Old and new origins
         old_origin = old_info.origin.position
         new_origin = new_info.origin.position
 
-        #Calculate the shift of coordinates in meters
+        # Calculate shift of coordinates in meters
         x_shift_m = old_origin.x - new_origin.x
         y_shift_m = old_origin.y - new_origin.y
-        
-        #Convert the shift in meters to np array coords
-        x_shift_c = int(round(x_shift_m/map_resolution))
-        y_shift_c = int(round(y_shift_m/map_resolution))
 
-        # h_shift = new_info.height - old_info.height
-        # w_shift = new_info.width - old_info.width
-        
-        # Create new overlay and copy old data into shifted position
-        new_overlay = np.zeros((new_info.height,new_info.width))
-        new_overlay[y_shift_c:new_info.height, x_shift_c:new_info.width] = self.__items_grid
-        
+        # Convert to cell shift (integer grid cells)
+        x_shift_c = int(round(x_shift_m / map_resolution))
+        y_shift_c = int(round(y_shift_m / map_resolution))
+
+        # Old overlay grid
+        old_overlay = self.__items_grid
+        old_h, old_w = old_overlay.shape
+
+        # New overlay grid to fill
+        new_overlay = np.zeros((new_info.height, new_info.width))
+        new_h, new_w = new_overlay.shape
+
+        # Determine where to place the old data inside the new grid
+        new_x_start = max(x_shift_c, 0)
+        new_y_start = max(y_shift_c, 0)
+
+        old_x_start = max(-x_shift_c, 0)
+        old_y_start = max(-y_shift_c, 0)
+
+        # Determine overlapping region sizes
+        copy_w = min(old_w - old_x_start, new_w - new_x_start)
+        copy_h = min(old_h - old_y_start, new_h - new_y_start)
+
+        # Only copy if there is a valid overlap
+        if copy_w > 0 and copy_h > 0:
+            new_overlay[new_y_start:new_y_start + copy_h,
+                        new_x_start:new_x_start + copy_w] = \
+            old_overlay[old_y_start:old_y_start + copy_h,
+                        old_x_start:old_x_start + copy_w]
+
         # Update internal overlay
         self.__items_grid = new_overlay
 
