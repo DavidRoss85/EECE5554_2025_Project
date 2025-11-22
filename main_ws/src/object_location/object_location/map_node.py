@@ -155,7 +155,7 @@ class MapGenerator(Node):
         self.__add_to_location_overlay(item_world_locations)
         
         # Pulish updated overlay
-        overlay_msg = self.__generate_overlay_message()
+        overlay_msg = self.__generate_navigation_message()
         self.__overlay_publisher.publish(overlay_msg)
     
     #----------------------------------------------------------------------------------
@@ -171,6 +171,26 @@ class MapGenerator(Node):
                 self.__items_grid[i,j] = 101  # Mark detected item on overlay
 
     #----------------------------------------------------------------------------------
+    def __fuse_navigation_overlay(self):
+        # Combine occupancy grid and item overlay to create navigation grid
+        self.__navigation_grid = np.copy(self.__map_data)
+        item_positions = np.where(self.__items_grid == 101)
+        for i,j in zip(item_positions[0], item_positions[1]):
+            self.__navigation_grid[i,j] = 100  # Mark items as obstacles in navigation grid
+    #----------------------------------------------------------------------------------
+
+    #----------------------------------------------------------------------------------
+    def __generate_navigation_message(self):
+        """Build and return an OccupancyGrid message for the navigation map."""
+
+        self.__fuse_navigation_overlay()
+
+        navigation_msg = OccupancyGrid()
+        navigation_msg.header.stamp = self.get_clock().now().to_msg()
+        navigation_msg.header.frame_id = 'map'
+        navigation_msg.info = self.__map_info
+        navigation_msg.data = self.__navigation_grid.flatten().astype(np.int8).tolist()
+        return navigation_msg
     def __generate_overlay_message(self):
         """Build and return an OccupancyGrid message for the overlay map."""
 
