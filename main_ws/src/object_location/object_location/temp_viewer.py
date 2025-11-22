@@ -57,6 +57,7 @@ class TempViewer(Node):
         self.__cv_bridge = CvBridge()
         cv2.namedWindow("Temp Viewer", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Overlay Map", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Base Map", cv2.WINDOW_NORMAL)
 
     def image_callback(self, msg):
         cv_image = self.__cv_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
@@ -67,6 +68,7 @@ class TempViewer(Node):
         width = msg.info.width
         height = msg.info.height
         data = np.array(msg.data, dtype=np.int8).reshape((height, width))
+        data=data.transpose()
         data[data == 0] = 100
         data[data == 101] = 0
 
