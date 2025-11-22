@@ -26,7 +26,7 @@ ros2 launch turtlebot4_gz_bringup turtlebot4_gz.launch.py nav2:=true slam:=false
 #---------------------------------------------------------------
 
 #SLAM toolbox: Publishes /map (Occupancy Grid)
-ros2 launch slam_toolbox online_async_launch.py use_sim_time:=true params_file:=fast_slam.yaml
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=true sync:=false params_file:=fast_slam.yaml
 
 
 #Install Nav2 binaries:
@@ -44,3 +44,7 @@ ros-jazzy-turtlebot4-msgs \
 ros-jazzy-turtlebot4-navigation \
 ros-jazzy-turtlebot4-node
 
+# Teleop keyboard control:
+sudo apt install ros-jazzy-teleop-twist-keyboard
+# To run teleop keyboard with stamped messages:
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p stamped:=true
