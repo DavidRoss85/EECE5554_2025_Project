@@ -93,8 +93,9 @@ class RoboSyncNode(Node):
             sync_msg.depth_image = self.__depth_image
             sync_msg.robot_pose = self.__robot_pose
 
-            self.__pub.publish(sync_msg)
-            #self.get_logger().info('Published synchronized message.')
+        # When perfected, should publish only when all three messages are available
+        self.__pub.publish(sync_msg)
+        #self.get_logger().info('Published synchronized message.')
 
     #----------------------------------------------------------------------------------
     def __get_robot_pose(self):

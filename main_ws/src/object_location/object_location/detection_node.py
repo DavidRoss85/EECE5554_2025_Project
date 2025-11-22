@@ -129,7 +129,7 @@ class DetectionNode(Node):
         #Reset list:
         self.__detected_list=[]
         
-
+        
         # Get items and label if meet criteria
         if results.boxes is not None:
             for box in results.boxes:
