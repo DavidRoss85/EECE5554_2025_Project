@@ -45,7 +45,9 @@ class DistanceNode(Node):
     DEFAULT_IMAGE_ENCODING = 'passthrough'
     DEFAULT_DEPTH_MIN = 1
     DEFAULT_DEPTH_MAX = 65000
-    DEFAULT_DEPTH_FACTOR = 10.0
+    METER_DEPTH_FACTOR = 1
+    MM_DEPTH_FACTOR = 1000
+    DEFAULT_USING_GAZEBO = True
 
     # Camera intrinsics (unused right now, but available)
     DEFAULT_FOCAL_LENGTH = 870.0
@@ -70,7 +72,8 @@ class DistanceNode(Node):
         self.__image_encoding = self.DEFAULT_IMAGE_ENCODING
         self.__depth_min = self.DEFAULT_DEPTH_MIN
         self.__depth_max = self.DEFAULT_DEPTH_MAX
-        self.__depth_factor = self.DEFAULT_DEPTH_FACTOR
+        self.__using_gazebo = self.DEFAULT_USING_GAZEBO
+        self.__depth_factor = self.METER_DEPTH_FACTOR if self.__using_gazebo else self.MM_DEPTH_FACTOR
 
         # Placeholder for parameter server imports
         self.__load_parameters()
@@ -146,7 +149,8 @@ class DistanceNode(Node):
 
             # Depth lookup at bounding-box center
             # Note: numpy uses [row=y, col=x]
-            relative_location.distance = float(depth_map[yc, xc]*self.__depth_factor)  # Distance in mm
+            relative_location.distance = float(depth_map[yc, xc]/self.__depth_factor)  # Distance in m
+            print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} m")
 
             # Compute angular offset based on horizontal pixel location
             relative_location.relative_yaw = float(
@@ -158,7 +162,7 @@ class DistanceNode(Node):
             )
 
             locations_list.append(relative_location)
-            print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} mm, Yaw: {relative_location.relative_yaw:.2f}°")
+            # print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} mm, Yaw: {relative_location.relative_yaw:.2f}°")
         # Bundle computed locations and republish synchronized message
         rsync_msg = self.__generate_location_message(locations_list, message.robo_sync)
         self.__locations_pub.publish(rsync_msg)

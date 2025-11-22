@@ -112,17 +112,55 @@ class MapGenerator(Node):
         self.__map_data[self.__map_data == -1] = 50  # Unknown cells to 50
         self.__map_info = msg.info
         self.__save_map_data()
+    #----------------------------------------------------------------------------------
 
     #----------------------------------------------------------------------------------
-    def __shift_location_overlay(self,old_info,new_info):
-        #Calculate shifts
-        h_shift = new_info.height - old_info.height
-        w_shift = new_info.width - old_info.width
+    # def __shift_location_overlay(self,old_info,new_info):
+    #     #Calculate shifts
+    #     h_shift = new_info.height - old_info.height
+    #     w_shift = new_info.width - old_info.width
         
-        # Create new overlay and copy old data into shifted position
-        new_overlay = np.zeros((new_info.height,new_info.width))
-        new_overlay[h_shift:new_info.height, w_shift:new_info.width] = self.__items_grid
+    #     # Create new overlay and copy old data into shifted position
+    #     new_overlay = np.zeros((new_info.height,new_info.width))
+    #     new_overlay[h_shift:new_info.height, w_shift:new_info.width] = self.__items_grid
         
+    #     # Update internal overlay
+    #     self.__items_grid = new_overlay
+    def __shift_location_overlay(self, old_info, new_info):
+        old_h = old_info.height
+        old_w = old_info.width
+        new_h = new_info.height
+        new_w = new_info.width
+
+        old_origin_x = old_info.origin.position.x
+        old_origin_y = old_info.origin.position.y
+        new_origin_x = new_info.origin.position.x
+        new_origin_y = new_info.origin.position.y
+
+        res = new_info.resolution
+
+        # Compute how many cells the origin moved
+        shift_i = int((old_origin_y - new_origin_y) / res)
+        shift_j = int((old_origin_x - new_origin_x) / res)
+
+        # Create fresh overlay of new size
+        new_overlay = np.zeros((new_h, new_w))
+
+        # Compute the valid region to copy into
+        start_i_new = max(0, shift_i)
+        start_j_new = max(0, shift_j)
+        end_i_new   = min(new_h, shift_i + old_h)
+        end_j_new   = min(new_w, shift_j + old_w)
+
+        start_i_old = max(0, -shift_i)
+        start_j_old = max(0, -shift_j)
+        end_i_old   = start_i_old + (end_i_new - start_i_new)
+        end_j_old   = start_j_old + (end_j_new - start_j_new)
+
+        # Only copy overlapping area
+        new_overlay[start_i_new:end_i_new, start_j_new:end_j_new] = \
+            self.__items_grid[start_i_old:end_i_old, start_j_old:end_j_old]
+
         # Update internal overlay
         self.__items_grid = new_overlay
 
@@ -133,8 +171,9 @@ class MapGenerator(Node):
             return
 
         # Get robot world location and yaw
-        my_pose = self.__fetch_robot_world_location()
-        rx, ry, rz, rq = my_pose
+        my_pose = msg.robo_sync.robot_pose
+        rx, ry = my_pose.transform.translation.x, my_pose.transform.translation.y
+        rq = my_pose.transform.rotation
         r_yaw = quaternion_to_yaw(rq) # In radians
         
         item_world_locations = []
@@ -174,12 +213,7 @@ class MapGenerator(Node):
 
     #----------------------------------------------------------------------------------
     def __fuse_navigation_overlay(self):
-        # Combine occupancy grid and item overlay to create navigation grid
-        self.__navigation_grid = np.copy(self.__map_data)
-        item_positions = np.where(self.__items_grid == OBJECT_OFFSET)
-        for i,j in zip(item_positions[0], item_positions[1]):
-            self.__navigation_grid[i,j] = 100  # Mark items as obstacles in navigation grid
-
+            pass
     #----------------------------------------------------------------------------------
     def __generate_navigation_message(self):
         """Build and return an OccupancyGrid message for the navigation map."""
@@ -218,8 +252,8 @@ class MapGenerator(Node):
         
         origin_x, origin_y, resolution = self.__fetch_origin_and_resolution()
 
-        i = int((y - origin_y) / resolution)  # row
-        j = int((x - origin_x) / resolution)  # col
+        i = round((y - origin_y) / resolution)  # row
+        j = round((x - origin_x) / resolution)  # col
 
         return [i,j]
     #----------------------------------------------------------------------------------   

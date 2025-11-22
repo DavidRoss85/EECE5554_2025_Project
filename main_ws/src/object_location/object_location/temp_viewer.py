@@ -26,6 +26,9 @@ class TempViewer(Node):
         super().__init__('temp_viewer')
         self.get_logger().info('Initializing Temp Viewer Node')
 
+        self.__latest_map = None
+        self.__latest_overlay = None
+
         self.__image_subscription = self.create_subscription(
             Image,
             '/oakd/rgb/preview/image_raw',
@@ -54,42 +57,75 @@ class TempViewer(Node):
             10
         )
 
+
         self.__cv_bridge = CvBridge()
         cv2.namedWindow("Temp Viewer", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Overlay Map", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Base Map", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Detections", cv2.WINDOW_NORMAL)
+        # cv2.namedWindow("Combined View", cv2.WINDOW_NORMAL)
 
     def image_callback(self, msg):
         cv_image = self.__cv_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         cv2.imshow("Temp Viewer", cv_image)
         cv2.waitKey(1)
-
+    #----------------------------------------------------------------------------------
     def overlay_callback(self, msg):
         width = msg.info.width
         height = msg.info.height
         data = np.array(msg.data, dtype=np.int8).reshape((height, width))
-        data=data.transpose()
-        # data[data == 0] = 100
-        # data[data == 101] = 0
+        # data = data.T
 
-        cv2.imshow("Overlay Map", data * 2)  # Scale for better visibility
+        # # Prepare color image (BGR)
+        # overlay = np.zeros((width, height, 3), dtype=np.uint8)
+
+        # # objects = bright green
+        # overlay[data == 250] = (0, 255, 0)
+
+        # # inflated obstacles = yellow
+        # overlay[data == 100] = (0, 255, 255)
+        
+        # self.__latest_overlay = overlay
+        cv2.imshow("Overlay Map", data)
+        # self.__update_combined_view()
         cv2.waitKey(1)
-
+    #--------------------------------------------------------------------------------
     def map_callback(self, msg):
         width = msg.info.width
         height = msg.info.height
         data = np.array(msg.data, dtype=np.int8).reshape((height, width))
-        data=data.transpose()
-        data[data == -1] = 50  # Set unknown cells to mid-gray for visualization
-        # data[data == 100] = 1    # Free space to black
-        # data[data == 0] = 100  # Occupied space to whited
-        # data[data == 1] = 0  # Unknown space to gray
+        data = data.T
 
-        cv2.imshow("Base Map", data * 2)  # Scale for better visibility
+        # Create grayscale image
+        img = np.zeros_like(data, dtype=np.uint8)
+
+
+        img[data == 100] = 0     # occupied = black
+        img[data == 0] = 255     # free = white
+        img[(data != 0) & (data != 100)] = 127   # unknown = gray
+
+        self.__latest_map = img
+        cv2.imshow("Base Map", img)
+        # self.__update_combined_view()
         cv2.waitKey(1)
-        # For debugging purposes, we can print the shape of the map
-        # self.get_logger().info(f'Received map of size: {data.shape}')
+    
+
+    def __update_combined_view(self):
+        if self.__latest_map is None or self.__latest_overlay is None:
+            return
+
+        # Convert grayscale map to BGR
+        map_bgr = cv2.cvtColor(self.__latest_map, cv2.COLOR_GRAY2BGR)
+
+        print("MAP SHAPE:     ", map_bgr.shape)
+        print("OVERLAY SHAPE: ", self.__latest_overlay.shape)
+
+        # Blend overlay on top of occupancy map
+        combined = cv2.addWeighted(map_bgr, 1.0, self.__latest_overlay, 1.0, 0)
+
+        cv2.imshow("Combined View", combined)
+        cv2.waitKey(1)
+
 
     def detection_vision_callback(self,msg):
         cv_image = self.__cv_bridge.imgmsg_to_cv2( msg.detections.image_annotated)
