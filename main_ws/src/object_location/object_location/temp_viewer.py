@@ -26,30 +26,30 @@ class TempViewer(Node):
         super().__init__('temp_viewer')
         self.get_logger().info('Initializing Temp Viewer Node')
 
-        # self.__image_subscription = self.create_subscription(
-        #     Image,
-        #     '/oakd/rgb/preview/image_raw',
-        #     self.image_callback,
-        #     10
-        # )
+        self.__image_subscription = self.create_subscription(
+            Image,
+            '/oakd/rgb/preview/image_raw',
+            self.image_callback,
+            10
+        )
 
-        # self.__overlay_subscription = self.create_subscription(
-        #     OccupancyGrid,
-        #     '/grid/overlay',
-        #     self.overlay_callback,
-        #     10
-        # )
+        self.__overlay_subscription = self.create_subscription(
+            OccupancyGrid,
+            '/grid/overlay',
+            self.overlay_callback,
+            10
+        )
 
-        # self.__map_subscription = self.create_subscription(
-        #     OccupancyGrid,
-        #     '/map',
-        #     self.map_callback,
-        #     10
-        # )
+        self.__map_subscription = self.create_subscription(
+            OccupancyGrid,
+            '/map',
+            self.map_callback,
+            10
+        )
 
         self.__detection_vision = self.create_subscription(
             RSyncDetectionList,
-            '/object/detections',
+            '/objects/detections',
             self.detection_vision_callback,
             10
         )

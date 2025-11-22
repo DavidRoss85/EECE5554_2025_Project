@@ -47,7 +47,7 @@ class DetectionNode(Node):
     DEFAULT_MAX = 10
     DEFAULT_THRESHOLD = 0.5
     DEFAULT_FEED_SHOW = True
-    DEFAULT_SHOULD_PUBLISH = True
+    DEFAULT_SHOULD_PUBLISH = False
     DEFAULT_LINE_THICKNESS = 2
     DEFAULT_FONT_SCALE = 0.5
     DEFAULT_BGR_FONT_COLOR = (0,255,0)
@@ -75,6 +75,7 @@ class DetectionNode(Node):
         self.__detection_threshold = self.DEFAULT_THRESHOLD   # Threshold for detecting items
         self.__detected_list = []   #Stores a list of detected items
         self.__wanted_list = [] # Update this list to filter detections
+        self.__still_in_function = False
 
         self.__load_parameters()    #Load external parameters
 
@@ -117,6 +118,7 @@ class DetectionNode(Node):
 
     #----------------------------------------------------------------------------------
     def __process_detections(self,message:RSync):
+
         rgb_image = message.rgb_image
 
         # Convert ros2 message to image:
@@ -171,6 +173,8 @@ class DetectionNode(Node):
                         text = item_name,
                         bgr = self.__bgr_font_color
                     )
+                # for i in range(100000000):
+                #     pass
 
         # Publish message if there are detections:
         if len(self.__detected_list) > 0:
@@ -184,6 +188,7 @@ class DetectionNode(Node):
         if self.__show_cv_feed:
             cv2.imshow("Detections",self.__annotated_image)
             cv2.waitKey(1)
+
 
     #----------------------------------------------------------------------------------
     def __generate_detection_list(self):
