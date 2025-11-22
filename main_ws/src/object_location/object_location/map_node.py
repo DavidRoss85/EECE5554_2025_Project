@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 from .helpers import find_a_star_path, quaternion_to_yaw, inflate_obstacles,transform_2d
 import cv2
 
-
+OBJECT_OFFSET = 250  # Value to mark detected objects on overlay grid
 class MapGenerator(Node):
     # Default values:
     DEFAULT_OCCUPANCY_SUB_TOPIC = '/map'
@@ -37,6 +37,7 @@ class MapGenerator(Node):
     
     DEFAULT_ROBOT_WIDTH_METERS = 0.36
     DEFAULT_ROBOT_POSE_QUATERNION = [0,0,0,[0,0,0,0]]
+
 
     #----------------------------------------------------------------------------------
     def __init__(self):
@@ -140,10 +141,11 @@ class MapGenerator(Node):
         # Loop through each detected item and plot on overlay
         for item in msg.locations.location_list:
             item_dist = item.distance
+            print(f"Item {item.name}: distance={item.distance:.2f}m, relative_yaw={item.relative_yaw:.2f}deg")
             item_yaw = math.radians(item.relative_yaw)
             # Calculate x and y offset from robot
-            y_offset = math.cos(item_yaw)/item_dist
-            x_offset = math.sin(item_yaw)/item_dist
+            y_offset = math.cos(item_yaw)*item_dist
+            x_offset = math.sin(item_yaw)*item_dist
             # Calculate world coordinates of item
             item_x,item_y = transform_2d(
                 rx, ry, r_yaw,
@@ -155,29 +157,28 @@ class MapGenerator(Node):
         self.__add_to_location_overlay(item_world_locations)
         
         # Pulish updated overlay
-        overlay_msg = self.__generate_navigation_message()
+        overlay_msg = self.__generate_overlay_message()
         self.__overlay_publisher.publish(overlay_msg)
     
     #----------------------------------------------------------------------------------
     def __add_to_location_overlay(self, item_world_locations):
         for item in item_world_locations:
             name, x, y = item
-
             #STUB:
             #DO I NEED TO CONVERT UNITS HERE? COME BACK TO THIS
             i,j = self.__convert_world_to_grid(x,y)
+            print(f'Plotting item {name} at world location x:{i:.2f}, y:{j:.2f}')
             
             if 0 <= i < self.__items_grid.shape[0] and 0 <= j < self.__items_grid.shape[1]:
-                self.__items_grid[i,j] = 101  # Mark detected item on overlay
+                self.__items_grid[i,j] = OBJECT_OFFSET  # Mark detected item on overlay
 
     #----------------------------------------------------------------------------------
     def __fuse_navigation_overlay(self):
         # Combine occupancy grid and item overlay to create navigation grid
         self.__navigation_grid = np.copy(self.__map_data)
-        item_positions = np.where(self.__items_grid == 101)
+        item_positions = np.where(self.__items_grid == OBJECT_OFFSET)
         for i,j in zip(item_positions[0], item_positions[1]):
             self.__navigation_grid[i,j] = 100  # Mark items as obstacles in navigation grid
-    #----------------------------------------------------------------------------------
 
     #----------------------------------------------------------------------------------
     def __generate_navigation_message(self):
@@ -191,6 +192,7 @@ class MapGenerator(Node):
         navigation_msg.info = self.__map_info
         navigation_msg.data = self.__navigation_grid.flatten().astype(np.int8).tolist()
         return navigation_msg
+    #----------------------------------------------------------------------------------
     def __generate_overlay_message(self):
         """Build and return an OccupancyGrid message for the overlay map."""
 
@@ -198,6 +200,7 @@ class MapGenerator(Node):
         overlay_msg.header.stamp = self.get_clock().now().to_msg()
         overlay_msg.header.frame_id = 'overlay_map'
         overlay_msg.info = self.__map_info
+        self.__items_grid = inflate_obstacles(self.__items_grid, self.__robot_width, self.__map_info.resolution, OBJECT_OFFSET)
         overlay_msg.data = self.__items_grid.flatten().astype(np.int8).tolist()
         return overlay_msg
     #----------------------------------------------------------------------------------

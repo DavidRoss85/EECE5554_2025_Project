@@ -70,8 +70,8 @@ class TempViewer(Node):
         height = msg.info.height
         data = np.array(msg.data, dtype=np.int8).reshape((height, width))
         data=data.transpose()
-        data[data == 0] = 100
-        data[data == 101] = 0
+        # data[data == 0] = 100
+        # data[data == 101] = 0
 
         cv2.imshow("Overlay Map", data * 2)  # Scale for better visibility
         cv2.waitKey(1)
@@ -92,7 +92,6 @@ class TempViewer(Node):
         # self.get_logger().info(f'Received map of size: {data.shape}')
 
     def detection_vision_callback(self,msg):
-        print("Detection Vision Callback")
         cv_image = self.__cv_bridge.imgmsg_to_cv2( msg.detections.image_annotated)
         cv2.imshow("Detections", cv_image)
         cv2.waitKey(1)

@@ -45,6 +45,7 @@ class DistanceNode(Node):
     DEFAULT_IMAGE_ENCODING = 'passthrough'
     DEFAULT_DEPTH_MIN = 1
     DEFAULT_DEPTH_MAX = 65000
+    DEFAULT_DEPTH_FACTOR = 10.0
 
     # Camera intrinsics (unused right now, but available)
     DEFAULT_FOCAL_LENGTH = 870.0
@@ -69,6 +70,7 @@ class DistanceNode(Node):
         self.__image_encoding = self.DEFAULT_IMAGE_ENCODING
         self.__depth_min = self.DEFAULT_DEPTH_MIN
         self.__depth_max = self.DEFAULT_DEPTH_MAX
+        self.__depth_factor = self.DEFAULT_DEPTH_FACTOR
 
         # Placeholder for parameter server imports
         self.__load_parameters()
@@ -122,7 +124,6 @@ class DistanceNode(Node):
             • Compute relative yaw from pixel x coordinate
         Then publishes an RSyncLocationList containing these results.
         """
-        print('Detected Object')
 
         # Extract YOLO detections and depth image
         detection_list = message.detections.item_list
@@ -145,7 +146,7 @@ class DistanceNode(Node):
 
             # Depth lookup at bounding-box center
             # Note: numpy uses [row=y, col=x]
-            relative_location.distance = float(depth_map[yc, xc])
+            relative_location.distance = float(depth_map[yc, xc]*self.__depth_factor)  # Distance in mm
 
             # Compute angular offset based on horizontal pixel location
             relative_location.relative_yaw = float(
@@ -157,7 +158,7 @@ class DistanceNode(Node):
             )
 
             locations_list.append(relative_location)
-
+            print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} mm, Yaw: {relative_location.relative_yaw:.2f}°")
         # Bundle computed locations and republish synchronized message
         rsync_msg = self.__generate_location_message(locations_list, message.robo_sync)
         self.__locations_pub.publish(rsync_msg)
