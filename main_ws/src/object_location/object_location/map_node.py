@@ -68,7 +68,7 @@ class MapGenerator(Node):
         self.__grid_subscriber = self.create_subscription(
             OccupancyGrid,
             self.__grid_sub_topic,
-            self.__interpret_grid,
+            self.__interpret_occupancy_grid,
             self.__max_msg
         )
 
@@ -90,22 +90,25 @@ class MapGenerator(Node):
 
         self.get_logger().info('Up and running')
     #----------------------------------------------------------------------------------
-    def __interpret_grid(self, msg):
-        if self.__map_data is not None:
-            # If map already exists
-            # Check for map size changes
+    def __interpret_occupancy_grid(self, msg):
+        if self.__map_data is None:
+            # First time receiving map
+            self.get_logger().info('Occupancy grid received')
+
+            # Initalize Overlay and Navigation Arrays to Match Occupancy Grid Array Size:
+            self.__items_grid = np.zeros((msg.info.height, msg.info.width))  # Initialize overlay grid
+            self.__navigation_grid = np.zeros((msg.info.height, msg.info.width))  # Initialize navigation grid    
+
+        else:
+            # If map already exists, check for map size changes
             if msg.info.width != self.__map_info.width or msg.info.height != self.__map_info.height:
                 
-                #If size changed, shift overlays accordingly
+                #Size changed, shift overlay accordingly
                 self.get_logger().info('Map size change detected, adjusting overlays')
                 old_info = self.__map_info  # Store old info
                 new_info = msg.info # Get new info
+
                 self.__shift_location_overlay(old_info, new_info)   # Shift overlays
-        else:
-            # First time receiving map
-            self.get_logger().info('Occupancy grid received')
-            self.__items_grid = np.zeros((msg.info.height, msg.info.width))  # Initialize overlay grid
-            self.__navigation_grid = np.zeros((msg.info.height, msg.info.width))  # Initialize navigation grid    
 
         # Store new map data
         self.__map_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
@@ -115,54 +118,74 @@ class MapGenerator(Node):
     #----------------------------------------------------------------------------------
 
     #----------------------------------------------------------------------------------
-    # def __shift_location_overlay(self,old_info,new_info):
-    #     #Calculate shifts
-    #     h_shift = new_info.height - old_info.height
-    #     w_shift = new_info.width - old_info.width
+    def __shift_location_overlay(self,old_info:OccupancyGrid.info,new_info:OccupancyGrid.info):
+        """
+        If the occupancy grid size changes, so does the position of values in the array. 
+         The origin is kept track of in the map_info. This is done automatically by the
+         slam toolbox, but not our generated data. We take the old origin and new 
+         originand compare the two to shift the values in the overlay accordingly.
+        """
+        #Calculate shifts (Condense these into smaller equation later)
+        map_resolution = new_info.resolution
+        old_origin = old_info.origin.position
+        new_origin = new_info.origin.position
+
+        #Calculate the shift of coordinates in meters
+        x_shift_m = old_origin.x - new_origin.x
+        y_shift_m = old_origin.y - new_origin.y
         
-    #     # Create new overlay and copy old data into shifted position
-    #     new_overlay = np.zeros((new_info.height,new_info.width))
-    #     new_overlay[h_shift:new_info.height, w_shift:new_info.width] = self.__items_grid
+        #Convert the shift in meters to np array coords
+        x_shift_c = int(round(x_shift_m/map_resolution))
+        y_shift_c = int(round(y_shift_m/map_resolution))
+
+        # h_shift = new_info.height - old_info.height
+        # w_shift = new_info.width - old_info.width
         
-    #     # Update internal overlay
-    #     self.__items_grid = new_overlay
-    def __shift_location_overlay(self, old_info, new_info):
-        old_h = old_info.height
-        old_w = old_info.width
-        new_h = new_info.height
-        new_w = new_info.width
-
-        old_origin_x = old_info.origin.position.x
-        old_origin_y = old_info.origin.position.y
-        new_origin_x = new_info.origin.position.x
-        new_origin_y = new_info.origin.position.y
-
-        res = new_info.resolution
-
-        # Compute how many cells the origin moved
-        shift_i = int((old_origin_y - new_origin_y) / res)
-        shift_j = int((old_origin_x - new_origin_x) / res)
-
-        # Create fresh overlay of new size
-        new_overlay = np.zeros((new_h, new_w))
-
-        # Compute the valid region to copy into
-        start_i_new = max(0, shift_i)
-        start_j_new = max(0, shift_j)
-        end_i_new   = min(new_h, shift_i + old_h)
-        end_j_new   = min(new_w, shift_j + old_w)
-
-        start_i_old = max(0, -shift_i)
-        start_j_old = max(0, -shift_j)
-        end_i_old   = start_i_old + (end_i_new - start_i_new)
-        end_j_old   = start_j_old + (end_j_new - start_j_new)
-
-        # Only copy overlapping area
-        new_overlay[start_i_new:end_i_new, start_j_new:end_j_new] = \
-            self.__items_grid[start_i_old:end_i_old, start_j_old:end_j_old]
-
+        # Create new overlay and copy old data into shifted position
+        new_overlay = np.zeros((new_info.height,new_info.width))
+        new_overlay[y_shift_c:new_info.height, x_shift_c:new_info.width] = self.__items_grid
+        
         # Update internal overlay
         self.__items_grid = new_overlay
+
+
+    # def __shift_location_overlay(self, old_info, new_info):
+    #     old_h = old_info.height
+    #     old_w = old_info.width
+    #     new_h = new_info.height
+    #     new_w = new_info.width
+
+    #     old_origin_x = old_info.origin.position.x
+    #     old_origin_y = old_info.origin.position.y
+    #     new_origin_x = new_info.origin.position.x
+    #     new_origin_y = new_info.origin.position.y
+
+    #     res = new_info.resolution
+
+    #     # Compute how many cells the origin moved
+    #     shift_i = int((old_origin_y - new_origin_y) / res)
+    #     shift_j = int((old_origin_x - new_origin_x) / res)
+
+    #     # Create fresh overlay of new size
+    #     new_overlay = np.zeros((new_h, new_w))
+
+    #     # Compute the valid region to copy into
+    #     start_i_new = max(0, shift_i)
+    #     start_j_new = max(0, shift_j)
+    #     end_i_new   = min(new_h, shift_i + old_h)
+    #     end_j_new   = min(new_w, shift_j + old_w)
+
+    #     start_i_old = max(0, -shift_i)
+    #     start_j_old = max(0, -shift_j)
+    #     end_i_old   = start_i_old + (end_i_new - start_i_new)
+    #     end_j_old   = start_j_old + (end_j_new - start_j_new)
+
+    #     # Only copy overlapping area
+    #     new_overlay[start_i_new:end_i_new, start_j_new:end_j_new] = \
+    #         self.__items_grid[start_i_old:end_i_old, start_j_old:end_j_old]
+
+    #     # Update internal overlay
+    #     self.__items_grid = new_overlay
 
     #----------------------------------------------------------------------------------
     def __interpret_locations(self, msg: RSyncLocationList):
