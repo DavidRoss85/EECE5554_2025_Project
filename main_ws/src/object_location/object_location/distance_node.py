@@ -43,13 +43,13 @@ class DistanceNode(Node):
 
     # Image + depth settings
     DEFAULT_IMAGE_ENCODING = 'passthrough'
-    DEFAULT_DEPTH_MIN = 0
-    DEFAULT_DEPTH_MAX = 255
+    DEFAULT_DEPTH_MIN = 1
+    DEFAULT_DEPTH_MAX = 65000
 
     # Camera intrinsics (unused right now, but available)
     DEFAULT_FOCAL_LENGTH = 870.0
     DEFAULT_BASELINE = 0.075
-    DEFAULT_CAMERA_PIXEL_WIDTH = 800
+    DEFAULT_CAMERA_PIXEL_WIDTH = 320
     DEFAULT_CAMERA_FOV_ANGLE = 130
 
     def __init__(self):

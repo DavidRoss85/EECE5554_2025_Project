@@ -47,6 +47,13 @@ class TempViewer(Node):
             10
         )
 
+        self.__detection_vision = self.create_subscription(
+            RSyncDetectionList,
+            '/object/detections',
+            self.detection_vision_callback,
+            10
+        )
+
         self.__cv_bridge = CvBridge()
         cv2.namedWindow("Temp Viewer", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Overlay Map", cv2.WINDOW_NORMAL)
@@ -81,6 +88,10 @@ class TempViewer(Node):
         # For debugging purposes, we can print the shape of the map
         # self.get_logger().info(f'Received map of size: {data.shape}')
 
+    def detection_vision_callback(self,msg):
+        cv_image = self.__cv_bridge.imgmsg_to_cv2( msg.detections.image_annotated)
+        cv2.imshow(cv_image)
+        cv2.waitKey(1)
 
 def main(args=None):
     rclpy.init(args=args)
