@@ -243,10 +243,17 @@ class MapGenerator(Node):
         """Build and return an OccupancyGrid message for the overlay map."""
 
         overlay_msg = OccupancyGrid()
+        # Set time stamp
         overlay_msg.header.stamp = self.get_clock().now().to_msg()
         overlay_msg.header.frame_id = 'overlay_map'
+
+        # Get dimensions
         overlay_msg.info = self.__map_info
+
+        # Inflate points to be bigger on map for visualization
         self.__items_grid = inflate_obstacles(self.__items_grid, self.__robot_width, self.__map_info.resolution, DEFAULT_OBJECT_MARKER_VALUE)
+        
+        # Flatten array for messaging
         overlay_msg.data = self.__items_grid.flatten().astype(np.int8).tolist()
         return overlay_msg
     #----------------------------------------------------------------------------------
@@ -297,40 +304,6 @@ class MapGenerator(Node):
             self.__handle_error(e,'update_robot_marker()','No transform available yet')
             return DEFAULT
         
-    #----------------------------------------------------------------------------------
-    def __plot_map(self):
-        if self.__map_data is None:
-            return
-        inverted_map = cv2.transpose(self.__map_data,1)
-        cv2.imshow("Occupancy",inverted_map)
-        cv2.waitKey(1)
-
-        return
-    
-        self.ax.clear()
-
-        self.ax.imshow(self.__map_data, cmap='gray_r', origin='lower')
-        # self.ax.imshow(inflated_map, cmap='gray_r', origin='lower')
-        
-        self.__update_robot_marker()
-
-        x,y,z,q = self.__fetch_robot_world_location()
-
-        if self.__finding_path:
-            ox,oy,res = self.__fetch_origin_and_resolution()
-            inflated_map = inflate_obstacles(self.__map_data,self.__robot_width,res,51)
-            
-            i,j = self.__convert_world_to_grid(x,y)
-            k,l = self.__convert_world_to_grid(self.__location_goal[0],self.__location_goal[1])
-
-            # path = find_a_star_path([i,j], [k,l],self.__map_data,51)
-            path = find_a_star_path([i,j], [k,l],inflated_map,51,1.5)
-        
-            self.__plot_path_on_map(path)
-
-
-        plt.draw()
-        plt.pause(0.01)
     #----------------------------------------------------------------------------------
     def __handle_error(self,e:Exception, function_location:str='',msg:str='',show_exception:bool=False):
         self.get_logger().warn(f'An error occured in {function_location}\n{msg}\n{e if show_exception else ""}')
