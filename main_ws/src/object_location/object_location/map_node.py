@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 from .helpers import find_a_star_path, quaternion_to_yaw, inflate_obstacles,transform_2d
 import cv2
 
-OBJECT_OFFSET = 250  # Value to mark detected objects on overlay grid
+DEFAULT_OBJECT_MARKER_VALUE = 250  # Value to mark detected objects on overlay grid
 class MapGenerator(Node):
     # Default values:
     DEFAULT_OCCUPANCY_SUB_TOPIC = '/map'
@@ -170,52 +170,13 @@ class MapGenerator(Node):
         # Update internal overlay
         self.__items_grid = new_overlay
 
-
-    # def __shift_location_overlay(self, old_info, new_info):
-    #     old_h = old_info.height
-    #     old_w = old_info.width
-    #     new_h = new_info.height
-    #     new_w = new_info.width
-
-    #     old_origin_x = old_info.origin.position.x
-    #     old_origin_y = old_info.origin.position.y
-    #     new_origin_x = new_info.origin.position.x
-    #     new_origin_y = new_info.origin.position.y
-
-    #     res = new_info.resolution
-
-    #     # Compute how many cells the origin moved
-    #     shift_i = int((old_origin_y - new_origin_y) / res)
-    #     shift_j = int((old_origin_x - new_origin_x) / res)
-
-    #     # Create fresh overlay of new size
-    #     new_overlay = np.zeros((new_h, new_w))
-
-    #     # Compute the valid region to copy into
-    #     start_i_new = max(0, shift_i)
-    #     start_j_new = max(0, shift_j)
-    #     end_i_new   = min(new_h, shift_i + old_h)
-    #     end_j_new   = min(new_w, shift_j + old_w)
-
-    #     start_i_old = max(0, -shift_i)
-    #     start_j_old = max(0, -shift_j)
-    #     end_i_old   = start_i_old + (end_i_new - start_i_new)
-    #     end_j_old   = start_j_old + (end_j_new - start_j_new)
-
-    #     # Only copy overlapping area
-    #     new_overlay[start_i_new:end_i_new, start_j_new:end_j_new] = \
-    #         self.__items_grid[start_i_old:end_i_old, start_j_old:end_j_old]
-
-    #     # Update internal overlay
-    #     self.__items_grid = new_overlay
-
     #----------------------------------------------------------------------------------
     def __interpret_locations(self, msg: RSyncLocationList):
         if self.__map_data is None:
             self.get_logger().info('No map data yet, cannot plot locations')
             return
 
-        # Get robot world location and yaw
+        # Get World coordinates of robot - x,y and yaw
         my_pose = msg.robo_sync.robot_pose
         rx, ry = my_pose.transform.translation.x, my_pose.transform.translation.y
         rq = my_pose.transform.rotation
@@ -224,20 +185,22 @@ class MapGenerator(Node):
         item_world_locations = []
         # Loop through each detected item and plot on overlay
         for item in msg.locations.location_list:
-            item_dist = item.distance
+            item_dist = item.distance   # in meters
             print(f"Item {item.name}: distance={item.distance:.2f}m, relative_yaw={item.relative_yaw:.2f}deg")
             item_yaw = math.radians(item.relative_yaw)
+
             # Calculate x and y offset from robot
-            y_offset = math.cos(item_yaw)*item_dist
-            x_offset = math.sin(item_yaw)*item_dist
-            # Calculate world coordinates of item
+            x_offset = math.cos(item_yaw)*item_dist #Meters
+            y_offset = math.sin(item_yaw)*item_dist #Meters
+
+            # Translate robot coordinates to World coordinates in meters
             item_x,item_y = transform_2d(
                 rx, ry, r_yaw,
                 x_offset, y_offset
             )
             item_world_locations.append((item.name,item_x,item_y))
 
-        # Update overlay grid
+        # Update overlay grid (Grid conversion is done inside function)
         self.__add_to_location_overlay(item_world_locations)
         
         # Pulish updated overlay
@@ -246,15 +209,19 @@ class MapGenerator(Node):
     
     #----------------------------------------------------------------------------------
     def __add_to_location_overlay(self, item_world_locations):
+        """
+        Item locations are given in meters. So must be converted to array coords before appending
+        """
         for item in item_world_locations:
             name, x, y = item
-            #STUB:
-            #DO I NEED TO CONVERT UNITS HERE? COME BACK TO THIS
+            # Converts the x,y world coordinates in meters to array cell coordinates
             i,j = self.__convert_world_to_grid(x,y)
-            print(f'Plotting item {name} at world location x:{i:.2f}, y:{j:.2f}')
+            print(f'Plotting item {name} at grid cell (row={i}, col={j})')
             
-            if 0 <= i < self.__items_grid.shape[0] and 0 <= j < self.__items_grid.shape[1]:
-                self.__items_grid[i,j] = OBJECT_OFFSET  # Mark detected item on overlay
+            # Verify that new coordinate is not out of bounds:
+            height, width = self.__items_grid.shape
+            if 0 <= i < height and 0 <= j < width:
+                self.__items_grid[i,j] = DEFAULT_OBJECT_MARKER_VALUE  # Mark detected item on overlay
 
     #----------------------------------------------------------------------------------
     def __fuse_navigation_overlay(self):
@@ -279,7 +246,7 @@ class MapGenerator(Node):
         overlay_msg.header.stamp = self.get_clock().now().to_msg()
         overlay_msg.header.frame_id = 'overlay_map'
         overlay_msg.info = self.__map_info
-        self.__items_grid = inflate_obstacles(self.__items_grid, self.__robot_width, self.__map_info.resolution, OBJECT_OFFSET)
+        self.__items_grid = inflate_obstacles(self.__items_grid, self.__robot_width, self.__map_info.resolution, DEFAULT_OBJECT_MARKER_VALUE)
         overlay_msg.data = self.__items_grid.flatten().astype(np.int8).tolist()
         return overlay_msg
     #----------------------------------------------------------------------------------
