@@ -1,11 +1,15 @@
 from launch import LaunchDescription
-from launch_ros.actions import DeclareLaunchArgument, ExecuteProcess, Node, TimerAction
+from launch_ros.actions import Node
+from launch.actions import ExecuteProcess
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     return LaunchDescription([
         ExecuteProcess(
             cmd='export PYTHONPATH=~/Desktop/EECE5554/EECE5554_2025_Project/venv/lib/python3.12/site-packages:$PYTHONPATH'
+        ),
+        ExecuteProcess(
+            cmd='ros2 launch slam_toolbox online_async_launch.py'
         ),
         Node(
             package='object_location',
@@ -14,8 +18,8 @@ def generate_launch_description():
         ),
         Node(
             package='object_location',
-            executable='detector_node',
-            name='detector_node',
+            executable='detection_node',
+            name='detection_node',
         ),
         Node(
             package='object_location',
