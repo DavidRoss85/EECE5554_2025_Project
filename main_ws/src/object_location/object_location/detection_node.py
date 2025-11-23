@@ -151,7 +151,8 @@ class DetectionNode(Node):
                         xyxy=box_coords,
                         xywh=box_center,
                         name=item_name,
-                        confidence=float(box.conf)
+                        confidence=float(box.conf),
+                        index=int(box.cls)
                     )
                     
                     # Add to list:
@@ -206,6 +207,7 @@ class DetectionNode(Node):
             pub_item.xyxy = item.xyxy
             pub_item.xywh = item.xywh
             pub_item.confidence = item.confidence
+            pub_item.index = item.index
 
             pub_item_list.append(pub_item)
 
@@ -265,13 +267,15 @@ class DetectionNode(Node):
 
 
 #*******************************************************
-# Generic class to store detected objects data
+# Generic class to store detected objects data 
+# (THIS IS POINTLESS... MAKE NOTE TO REPLACE WITH a normal DetectedItem())
 class DetectedObject:
-    def __init__(self, xyxy:list=[0,0,0,0], xywh:list =[0,0,0,0], name:str='',confidence:float=0.0):
+    def __init__(self, xyxy:list=[0,0,0,0], xywh:list =[0,0,0,0], name:str='',confidence:float=0.0, index:int=0):
         self.xyxy = xyxy
         self.xywh = xywh
         self.name = name
         self.confidence = confidence
+        self.index = index
 
 
 
