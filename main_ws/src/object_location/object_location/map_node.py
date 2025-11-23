@@ -25,7 +25,6 @@ import matplotlib.pyplot as plt
 from .helpers import find_a_star_path, quaternion_to_yaw, inflate_obstacles,transform_2d
 import cv2
 
-DEFAULT_OBJECT_MARKER_VALUE = 250  # Value to mark detected objects on overlay grid
 class MapGenerator(Node):
     # Default values:
     DEFAULT_OCCUPANCY_SUB_TOPIC = '/map'
@@ -38,6 +37,7 @@ class MapGenerator(Node):
     DEFAULT_ROBOT_WIDTH_METERS = 0.36
     DEFAULT_ROBOT_POSE_QUATERNION = [0,0,0,[0,0,0,0]]
 
+    DEFAULT_OBSTACLE_MARKER_VALUE = 100  # Value to mark detected objects on overlay grid
 
     #----------------------------------------------------------------------------------
     def __init__(self):
@@ -54,6 +54,7 @@ class MapGenerator(Node):
         self.__map_data = None
         self.__map_info = None
         self.__path_map = None
+        self.__occupancy_number_start = self.DEFAULT_OBSTACLE_MARKER_VALUE
         self.__items_grid = np.zeros((1,1)) # Placeholder until map received
         self.__navigation_grid = np.zeros((1,1)) # Placeholder until map received
         self.__last_robot_pose = self.DEFAULT_ROBOT_POSE_QUATERNION
@@ -221,7 +222,7 @@ class MapGenerator(Node):
             item_x = rx + math.cos(actual_yaw)*item_dist
             item_y = ry + math.sin(actual_yaw)*item_dist
             
-            item_world_locations.append((item.name,item_x,item_y))
+            item_world_locations.append((item.name, item.index,item_x,item_y))
 
         # Update overlay grid (Grid conversion is done inside function)
         self.__add_to_location_overlay(item_world_locations)
@@ -236,7 +237,7 @@ class MapGenerator(Node):
         Item locations are given in meters. So must be converted to array coords before appending
         """
         for item in item_world_locations:
-            name, x, y = item
+            name, index, x, y = item
             # Converts the x,y world coordinates in meters to array cell coordinates
             i,j = self.__convert_world_to_grid(x,y)
             print(f'Plotting item {name} at grid cell (row={i}, col={j})')
@@ -244,7 +245,7 @@ class MapGenerator(Node):
             # Verify that new coordinate is not out of bounds:
             height, width = self.__items_grid.shape
             if 0 <= i < height and 0 <= j < width:
-                self.__items_grid[i,j] = DEFAULT_OBJECT_MARKER_VALUE  # Mark detected item on overlay
+                self.__items_grid[i,j] = self.__occupancy_number_start + index # Mark detected item on overlay
 
     #----------------------------------------------------------------------------------
     
@@ -258,15 +259,23 @@ class MapGenerator(Node):
         r_yaw = quaternion_to_yaw(rq) # In radians
 
         i,j = self.__convert_world_to_grid(rx,ry)
-        map[i,j] = 100  # Mark robot path on map
-        map[i+1,j] = 100
-        map[i-1,j] = 100
-        map[i,j+1] = 100
-        map[i,j-1] = 100
-        for ilen in range(1,5):
+        map[i,j] = self.__occupancy_number_start  # Mark robot path on map
+        map[i+1,j] = self.__occupancy_number_start
+        map[i-1,j] = self.__occupancy_number_start
+        map[i,j+1] = self.__occupancy_number_start
+        map[i,j-1] = self.__occupancy_number_start
+        for theta in range(1,360,1):
+            for r in range (1,5):
+                di = round(r*math.sin(theta))
+                dj = round(r*math.cos(theta))
+                map[i+di,j+dj]= self.__occupancy_number_start
+
+        for ilen in range(1,10):
             di = round(ilen * math.sin(r_yaw))
             dj = round(ilen * math.cos(r_yaw))
-            map[i+di,j+dj] = 100  # Mark direction on map
+            map[i+di,j+dj] = self.__occupancy_number_start  # Mark direction on map
+
+            
         self.__path_map = map
         new_msg = OccupancyGrid()
         new_msg.header.stamp = self.get_clock().now().to_msg()
@@ -303,7 +312,7 @@ class MapGenerator(Node):
         overlay_msg.info = self.__map_info
 
         # Inflate points to be bigger on map for visualization
-        self.__items_grid = inflate_obstacles(self.__items_grid, self.__robot_width, self.__map_info.resolution, DEFAULT_OBJECT_MARKER_VALUE)
+        self.__items_grid = inflate_obstacles(self.__items_grid, self.__robot_width, self.__map_info.resolution, self.__occupancy_number_start)
         
         # Flatten array for messaging
         overlay_msg.data = self.__items_grid.flatten().astype(np.int8).tolist()
