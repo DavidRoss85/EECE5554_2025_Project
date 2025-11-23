@@ -45,7 +45,7 @@ class TempViewer(Node):
 
         self.__map_subscription = self.create_subscription(
             OccupancyGrid,
-            '/map',
+            '/grid/occupancy',
             self.map_callback,
             10
         )
@@ -56,6 +56,12 @@ class TempViewer(Node):
             self.detection_vision_callback,
             10
         )
+        self.__navigation_subscription = self.create_subscription(
+            OccupancyGrid,
+            '/grid/navigation',
+            self.path_callback,
+            10
+        )
 
 
         self.__cv_bridge = CvBridge()
@@ -63,8 +69,25 @@ class TempViewer(Node):
         cv2.namedWindow("Overlay Map", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Base Map", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Detections", cv2.WINDOW_NORMAL)
-        # cv2.namedWindow("Combined View", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Path Viewer", cv2.WINDOW_NORMAL)
 
+    #----------------------------------------------------------------------------------
+    def path_callback(self, msg):
+        width = msg.info.width
+        height = msg.info.height
+        data = np.array(msg.data, dtype=np.int8).reshape((height, width))
+        data = data.T
+
+        # Create grayscale image
+        img = np.zeros_like(data, dtype=np.uint8)
+
+
+        img[data == 100] = 0     # occupied = black
+        img[data == 0] = 255     # free = white
+        img[(data != 0) & (data != 100)] = 127   # unknown = gray
+
+        cv2.imshow("Path Viewer", img)
+        cv2.waitKey(1)
     def image_callback(self, msg):
         cv_image = self.__cv_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         cv2.imshow("Temp Viewer", cv_image)
@@ -74,12 +97,12 @@ class TempViewer(Node):
         width = msg.info.width
         height = msg.info.height
         data = np.array(msg.data, dtype=np.int8).reshape((height, width))
-        # data = data.T
+        data = data.T
 
         # # Prepare color image (BGR)
         # overlay = np.zeros((width, height, 3), dtype=np.uint8)
 
-        # # objects = bright green
+        # # objects = bright greenda
         # overlay[data == 250] = (0, 255, 0)
 
         # # inflated obstacles = yellow

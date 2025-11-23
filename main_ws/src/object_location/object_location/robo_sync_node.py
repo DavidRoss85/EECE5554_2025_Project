@@ -90,7 +90,7 @@ class RoboSyncNode(Node):
         sync_msg = RSync()
         sync_msg.rgb_image = self.__rgb_image
         sync_msg.depth_image = self.__depth_image
-        
+
         if self.__robot_pose is not None:
             sync_msg.robot_pose = self.__robot_pose
 

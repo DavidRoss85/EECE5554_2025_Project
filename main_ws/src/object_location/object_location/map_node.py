@@ -53,6 +53,7 @@ class MapGenerator(Node):
 
         self.__map_data = None
         self.__map_info = None
+        self.__path_map = None
         self.__items_grid = np.zeros((1,1)) # Placeholder until map received
         self.__navigation_grid = np.zeros((1,1)) # Placeholder until map received
         self.__last_robot_pose = self.DEFAULT_ROBOT_POSE_QUATERNION
@@ -76,6 +77,16 @@ class MapGenerator(Node):
         self.__overlay_publisher = self.create_publisher(
             OccupancyGrid,
             self.__overlay_map_topic,
+            self.__max_msg
+        )
+        self.__occupancy_publisher = self.create_publisher(
+            OccupancyGrid,
+            self.__occupancy_map_topic,
+            self.__max_msg
+        )
+        self.__navigation_publisher = self.create_publisher(
+            OccupancyGrid,
+            self.__navigation_map_topic,
             self.__max_msg
         )
 
@@ -114,7 +125,12 @@ class MapGenerator(Node):
         self.__map_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
         self.__map_data[self.__map_data == -1] = 50  # Unknown cells to 50
         self.__map_info = msg.info
-        self.__save_map_data()
+
+        new_msg = OccupancyGrid()
+        new_msg.header = msg.header
+        new_msg.info = msg.info
+        new_msg.data = self.__map_data.flatten().astype(np.int8).tolist()
+        self.__occupancy_publisher.publish(msg)  # Republish occupancy grid as-is
     #----------------------------------------------------------------------------------
 
     #----------------------------------------------------------------------------------
@@ -182,22 +198,29 @@ class MapGenerator(Node):
         rq = my_pose.transform.rotation
         r_yaw = quaternion_to_yaw(rq) # In radians
         
+        self.__plot_robot_path(my_pose)
+
         item_world_locations = []
         # Loop through each detected item and plot on overlay
         for item in msg.locations.location_list:
             item_dist = item.distance   # in meters
-            print(f"Item {item.name}: distance={item.distance:.2f}m, relative_yaw={item.relative_yaw:.2f}deg")
             item_yaw = math.radians(item.relative_yaw)
+            print(f"Item {item.name}: distance={item.distance:.2f}m, relative_yaw={item_yaw:.2f}deg")
+            print(f"Robot Pose: x={rx:.2f}m, y={ry:.2f}m, yaw={math.degrees(r_yaw):.2f}deg")
 
-            # Calculate x and y offset from robot
-            x_offset = math.cos(item_yaw)*item_dist #Meters
-            y_offset = math.sin(item_yaw)*item_dist #Meters
+            # # Calculate x and y offset from robot
+            # x_offset = math.cos(item_yaw)*item_dist #Meters
+            # y_offset = math.sin(item_yaw)*item_dist #Meters
 
-            # Translate robot coordinates to World coordinates in meters
-            item_x,item_y = transform_2d(
-                rx, ry, r_yaw,
-                x_offset, y_offset
-            )
+            # # Translate robot coordinates to World coordinates in meters
+            # item_x,item_y = transform_2d(
+            #     rx, ry, r_yaw,
+            #     x_offset, y_offset
+            # )
+            actual_yaw = r_yaw - item_yaw
+            item_x = rx + math.cos(actual_yaw)*item_dist
+            item_y = ry + math.sin(actual_yaw)*item_dist
+            
             item_world_locations.append((item.name,item_x,item_y))
 
         # Update overlay grid (Grid conversion is done inside function)
@@ -224,6 +247,35 @@ class MapGenerator(Node):
                 self.__items_grid[i,j] = DEFAULT_OBJECT_MARKER_VALUE  # Mark detected item on overlay
 
     #----------------------------------------------------------------------------------
+    
+    def __plot_robot_path(self, pose, map=None):
+        if map is None:
+            map = np.copy(self.__map_data if self.__map_data is not None else np.zeros((1,1)))
+
+        
+        rx, ry = pose.transform.translation.x, pose.transform.translation.y
+        rq = pose.transform.rotation
+        r_yaw = quaternion_to_yaw(rq) # In radians
+
+        i,j = self.__convert_world_to_grid(rx,ry)
+        map[i,j] = 100  # Mark robot path on map
+        map[i+1,j] = 100
+        map[i-1,j] = 100
+        map[i,j+1] = 100
+        map[i,j-1] = 100
+        for ilen in range(1,5):
+            di = round(ilen * math.sin(r_yaw))
+            dj = round(ilen * math.cos(r_yaw))
+            map[i+di,j+dj] = 100  # Mark direction on map
+        self.__path_map = map
+        new_msg = OccupancyGrid()
+        new_msg.header.stamp = self.get_clock().now().to_msg()
+        new_msg.header.frame_id = 'path'
+        new_msg.info = self.__map_info
+        new_msg.data = map.flatten().astype(np.int8).tolist()
+        self.__navigation_publisher.publish(new_msg)
+
+
     def __fuse_navigation_overlay(self):
             pass
     #----------------------------------------------------------------------------------
