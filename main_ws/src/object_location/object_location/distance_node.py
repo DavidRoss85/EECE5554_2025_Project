@@ -144,6 +144,7 @@ class DistanceNode(Node):
         for item in detection_list:
             relative_location = ItemLocation()
             relative_location.name = item.name
+            relative_location.index = item.index
 
             # YOLO bounding box: (xc, yc, width, height)
             xc, yc, w, h = item.xywh
