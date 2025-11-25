@@ -1,2 +1,3 @@
 std_msgs/Header header
-DetectedItem[] item_list
+object_location_interfaces/RoboSync robo_sync
+object_location_interfaces/DetectionList detections

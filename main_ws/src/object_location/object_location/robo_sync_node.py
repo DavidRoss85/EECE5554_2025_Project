@@ -96,7 +96,7 @@ class RoboSyncNode(Node):
 
         # When perfected, should publish only when all three messages are available
         self.__pub.publish(sync_msg)
-        #self.get_logger().info('Published synchronized message.')
+        self.get_logger().info('Published synchronized message.')
 
     #----------------------------------------------------------------------------------
     def __get_robot_pose(self):

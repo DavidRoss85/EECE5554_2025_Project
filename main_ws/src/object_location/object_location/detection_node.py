@@ -201,7 +201,7 @@ class DetectionNode(Node):
         """
         Generates a message to publish based on information
         stored within the object
-        returns: RSyncDetectionList
+        returns: DetectionList
         """
         pub_image_raw = self.__bridge.cv2_to_imgmsg(self.__pure_image)
         pub_image_annotated = self.__bridge.cv2_to_imgmsg(self.__annotated_image)
@@ -216,7 +216,7 @@ class DetectionNode(Node):
 
             pub_item_list.append(pub_item)
 
-        pub_frame_message = RSyncDetectionList()
+        pub_frame_message = DetectionList()
         pub_frame_message.image_raw = pub_image_raw
         pub_frame_message.image_annotated = pub_image_annotated
         pub_frame_message.item_list = pub_item_list
