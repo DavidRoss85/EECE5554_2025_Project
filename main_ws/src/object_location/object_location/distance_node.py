@@ -47,7 +47,7 @@ class DistanceNode(Node):
     DEFAULT_DEPTH_MAX = 65000
     METER_DEPTH_FACTOR = 1
     MM_DEPTH_FACTOR = 1000
-    DEFAULT_USING_GAZEBO = True
+    DEFAULT_USING_GAZEBO = False
 
     # Camera intrinsics (unused right now, but available)
     DEFAULT_FOCAL_LENGTH = 870.0
