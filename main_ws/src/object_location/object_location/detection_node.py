@@ -11,7 +11,7 @@ from rclpy.node import Node
 from std_msgs.msg import Header
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TransformStamped
-from object_location_interfaces.msg import RoboSync as RSync, DetectedItem, RSyncDetectionList, RSyncDetectionList
+from object_location_interfaces.msg import RoboSync as RSync, DetectedItem, DetectionList, RSyncDetectionList, RSyncDetectionList
 
 
 # OpenCV imports
