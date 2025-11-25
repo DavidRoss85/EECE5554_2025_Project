@@ -17,7 +17,7 @@ class RoboSyncNode(Node):
 
     #Class Constants
     DEFAULT_IMAGE_TOPIC = '/oakd/rgb/preview/image_raw'
-    DEFAULT_DEPTH_TOPIC = '/oakd/rgb/preview/depth' # '/oakd/stereo/image_raw'
+    DEFAULT_DEPTH_TOPIC =  '/oakd/stereo/image_raw' # '/oakd/rgb/preview/depth'
     DEFAULT_DYNAMIC_TRANSFORM_TOPIC = '/tf'
     DEFAULT_STATIC_TRANSFORM_TOPIC = '/tf_static'
     DEFAULT_PUBLISH_TOPIC = '/sync/robot/state'
