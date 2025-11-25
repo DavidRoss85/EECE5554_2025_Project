@@ -77,12 +77,12 @@ class ApproachControllerNode(Node):
         self.get_logger().info(f'Target: {self.target_class} | Distance: {self.target_distance}m')
         self.get_logger().info('='*60)
     
-    def detection_callback(self, msg):
+    def detection_callback(self, msg:RSyncDetectionList):
         print("Detection callback triggered")
         try:
             target_found = False
-            
-            for item in msg.item_list:
+            item_list = msg.detections.item_list
+            for item in item_list:
                 if item.name == self.target_class:
                     if len(item.xywh) >= 2:
                         center_x = float(item.xywh[0])
@@ -181,7 +181,7 @@ class ApproachControllerNode(Node):
                 self.approach_target(self.current_detection['center_x'], distance)
     
     def approach_target(self, target_x, distance):
-        twist = Twist()
+        twist = TwistStamped()
         
         # Angular control
         error_x = target_x - self.image_center_x
@@ -225,7 +225,7 @@ class ApproachControllerNode(Node):
         self.cmd_vel_pub.publish(twist)
     
     def stop_robot(self):
-        twist = Twist()
+        twist = TwistStamped()
         self.cmd_vel_pub.publish(twist)
 
 def main(args=None):
