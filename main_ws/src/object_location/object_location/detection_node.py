@@ -46,12 +46,13 @@ class DetectionNode(Node):
     # Default values:
     DEFAULT_MAX = 10
     DEFAULT_THRESHOLD = 0.5
-    DEFAULT_FEED_SHOW = False
+    DEFAULT_FEED_SHOW = True
     DEFAULT_SHOULD_PUBLISH = True
     DEFAULT_LINE_THICKNESS = 2
     DEFAULT_FONT_SCALE = 0.5
     DEFAULT_BGR_FONT_COLOR = (0,255,0)
     DEFAULT_BGR_BOX_COLOR = (255,0,0)
+    DEFAULT_WANTED_LIST = ['bottle']  # Empty list means all items are wanted
 
     def __init__(self):
         super().__init__('detection_node')
@@ -74,7 +75,7 @@ class DetectionNode(Node):
         self.__annotated_image = None   #Stores the image with boxes and identifiers
         self.__detection_threshold = self.DEFAULT_THRESHOLD   # Threshold for detecting items
         self.__detected_list = []   #Stores a list of detected items
-        self.__wanted_list = [] # Update this list to filter detections
+        self.__wanted_list = self.DEFAULT_WANTED_LIST # Update this list to filter detections
         self.__still_in_function = False
 
         self.__load_parameters()    #Load external parameters
@@ -118,7 +119,7 @@ class DetectionNode(Node):
 
     #----------------------------------------------------------------------------------
     def __process_detections(self,message:RSync):
-
+        print("Processing Detections...")
         rgb_image = message.rgb_image
 
         # Convert ros2 message to image:
@@ -133,8 +134,10 @@ class DetectionNode(Node):
         
         
         # Get items and label if meet criteria
+        count = 0
         if results.boxes is not None:
             for box in results.boxes:
+                count +=1
                 if self.__meets_critera(box):
                     # Get box coordinates:
                     x1,y1,x2,y2 = map(int,box.xyxy[0].tolist()) #Convert tensor to list
@@ -174,6 +177,8 @@ class DetectionNode(Node):
                         text = item_name,
                         bgr = self.__bgr_font_color
                     )
+                    # if count >= 10:
+                    #     break
                 # for i in range(100000000):
                 #     pass
 
