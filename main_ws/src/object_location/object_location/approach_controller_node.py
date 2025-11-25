@@ -5,7 +5,7 @@ Approach Controller Node - Uses RSyncDetectionList and RoboSync
 
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import TwistStamped
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import numpy as np
@@ -59,15 +59,15 @@ class ApproachControllerNode(Node):
             10
         )
         
-        self.sync_sub = self.create_subscription(
-            RoboSync,
-            '/sync/robot/state',
-            self.sync_callback,
-            10
-        )
+        # self.sync_sub = self.create_subscription(
+        #     RoboSync,
+        #     '/sync/robot/state',
+        #     self.sync_callback,
+        #     10
+        # )
         
         # Publisher
-        self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.cmd_vel_pub = self.create_publisher(TwistStamped, '/cmd_vel', 10)
         
         # Control loop
         self.control_timer = self.create_timer(0.1, self.control_loop)
@@ -78,6 +78,7 @@ class ApproachControllerNode(Node):
         self.get_logger().info('='*60)
     
     def detection_callback(self, msg):
+        print("Detection callback triggered")
         try:
             target_found = False
             
