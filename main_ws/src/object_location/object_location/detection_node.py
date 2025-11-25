@@ -11,7 +11,7 @@ from rclpy.node import Node
 from std_msgs.msg import Header
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TransformStamped
-from object_location_interfaces.msg import RoboSync as RSync, DetectedItem, DetectionList, RSyncDetectionList
+from object_location_interfaces.msg import RoboSync as RSync, DetectedItem, RSyncDetectionList, RSyncDetectionList
 
 
 # OpenCV imports
@@ -201,7 +201,7 @@ class DetectionNode(Node):
         """
         Generates a message to publish based on information
         stored within the object
-        returns: DetectionList
+        returns: RSyncDetectionList
         """
         pub_image_raw = self.__bridge.cv2_to_imgmsg(self.__pure_image)
         pub_image_annotated = self.__bridge.cv2_to_imgmsg(self.__annotated_image)
@@ -216,7 +216,7 @@ class DetectionNode(Node):
 
             pub_item_list.append(pub_item)
 
-        pub_frame_message = DetectionList()
+        pub_frame_message = RSyncDetectionList()
         pub_frame_message.image_raw = pub_image_raw
         pub_frame_message.image_annotated = pub_image_annotated
         pub_frame_message.item_list = pub_item_list
