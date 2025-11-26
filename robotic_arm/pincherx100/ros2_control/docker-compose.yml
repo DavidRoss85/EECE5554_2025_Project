@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  pincherx100:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pincherx100_ros2
+    network_mode: host
+    privileged: true
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    volumes:
+      # Mount source code for development (changes reflected immediately with symlink install)
+      - ./pincherx100_control:/ros2_ws/src/pincherx100_control:rw
+    environment:
+      - ROS_DOMAIN_ID=0
+    stdin_open: true
+    tty: true
+    command: bash
+
+
+

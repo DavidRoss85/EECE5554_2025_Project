@@ -1,0 +1,48 @@
+# PincherX100 Arm Configuration
+
+# Serial port settings
+port: '/dev/ttyUSB0'
+baudrate: 1000000
+
+# Joint configuration
+joint_names: ['base', 'shoulder', 'elbow', 'wrist', 'gripper']
+servo_ids: [1, 2, 3, 4, 5]
+
+# Publishing rate (Hz)
+publish_rate: 50.0
+
+# Movement profile settings
+profile_velocity: 150      # Lower = faster but less torque, Higher = slower but MORE TORQUE
+profile_acceleration: 80   # Lower = more aggressive, Higher = smoother
+pwm_limit: 885            # Maximum PWM (0-885 = 0-100% voltage)
+current_limit: 1193       # Maximum current (0-1193 = 0-2.69A for XL430-W250)
+
+# Joint limits (Dynamixel units: 0-4095)
+# Adjust these based on your mechanical setup
+limits:
+  base:
+    min: 512      # ~45 degrees
+    max: 3584     # ~315 degrees
+  shoulder:
+    min: 1024     # ~90 degrees
+    max: 3072     # ~270 degrees
+  elbow:
+    min: 512      # ~45 degrees
+    max: 3584     # ~315 degrees
+  wrist:
+    min: 1024     # ~90 degrees
+    max: 3072     # ~270 degrees
+  gripper:
+    min: 1500     # Open position
+    max: 2600     # Closed position
+
+# Preset poses (Dynamixel units: 0-4095)
+poses:
+  home: [2048, 2048, 2048, 2048, 2048]           # Center position
+  sleep: [2048, 1024, 512, 2048, 2048]           # Compact rest position
+  ready: [2048, 2500, 2200, 2048, 2048]          # Ready to grasp position
+  gripper_open: 2448                              # Gripper fully open
+  gripper_closed: 1648                            # Gripper closed
+
+
+

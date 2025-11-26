@@ -1,0 +1,190 @@
+========================================
+PincherX100 Low-Level Control
+========================================
+
+** MAXIMUM POWER MODE ENABLED **
+All servos configured for maximum torque to lift against gravity!
+
+- PWM Limit: 885/885 (100% voltage)
+- Current Limit: 1193/1193 (2.69A max)
+- Optimized velocity for maximum lifting power
+
+QUICK START:
+
+1. First, make sure your user has permission to access /dev/ttyUSB0:
+   sudo usermod -a -G dialout $USER
+   (Then log out and log back in)
+
+2. Activate the virtual environment:
+   cd /home/jx/Dev/Robotics/pincherx100/low-level_control
+   source venv/bin/activate
+
+3. Scan for servos to find their IDs and baudrate:
+   python scan_servos.py
+
+4. (Optional) Check for servo errors and status:
+   python check_errors.py
+
+5. Run the control program (default baudrate is 1000000):
+   python control_arm.py
+
+   Or specify a different baudrate:
+   python control_arm.py 57600
+
+
+KEYBOARD CONTROLS:
+
+  A/D - Base rotation (Left/Right)
+  W/S - Shoulder movement (Up/Down)
+  E/C - Elbow movement (Up/Down)
+  R/V - Wrist movement (Up/Down)
+  J/K - Gripper (Close/Open)
+  
+Utilities:
+  H   - Home (center all servos to safe position)
+  P   - Show all positions & error status
+  X   - Clear hardware errors (reboots servos when LED flashes red)
+  Q   - Quit
+
+  Note: Keys form a vertical column (R-E-W-S-C-V) 
+        matching the arm's joints from wrist to base
+        Position values range from 0-4095 (XL430-W250)
+        
+SAFETY FEATURES:
+
+  • Position limits enabled to prevent damage
+  • Automatic error detection (red LED = overload)
+  • Press 'X' to clear errors and resume
+  • Step size adjustable (default: 8 degrees)
+
+
+TUNING MOVEMENT:
+
+Option 1 - Use the tuning script (EASIEST):
+  python tune_movement.py
+  
+Recommended presets:
+  - Maximum Power: velocity=150, accel=80 (DEFAULT - BEST FOR LIFTING)
+  - Balanced: velocity=100, accel=50
+  - Fast & Snappy: velocity=50, accel=20
+
+Option 2 - Edit control_arm.py manually:
+  PROFILE_VELOCITY = 150     # Lower = faster BUT less torque
+                              # Higher = slower BUT MORE LIFTING POWER
+  PROFILE_ACCELERATION = 80  # Lower = more aggressive
+  PWM_LIMIT = 885           # MAXIMUM (do not exceed)
+  CURRENT_LIMIT = 1193      # MAXIMUM (do not exceed)
+
+IMPORTANT: Slower movement = More torque for lifting!
+The shoulder needs high torque to lift the arm against gravity.
+
+
+CONFIGURATION:
+
+If your servo IDs are different, edit control_arm.py:
+  ID_BASE = 1      # Waist/Base rotation (A/D keys)
+  ID_SHOULDER = 2  # Shoulder joint (W/S keys)
+  ID_ELBOW = 3     # Elbow joint (E/C keys)
+  ID_WRIST = 4     # Wrist joint (R/V keys)
+  ID_GRIPPER = 5   # Gripper (J/K keys)
+
+Gripper positions (adjust if needed):
+  GRIPPER_OPEN_POS = 2048 + 400
+  GRIPPER_CLOSED_POS = 2048 - 400
+
+
+UNDERSTANDING POWER & MOVEMENT:
+
+Profile Velocity: Controls movement speed AND available torque
+  - 0 = maximum speed BUT less torque
+  - Higher values = slower movement BUT MORE TORQUE
+  - Range: 0-1023
+  - DEFAULT: 150 (optimized for lifting power)
+
+Profile Acceleration: Controls how quickly servo reaches target speed
+  - 0 = instant acceleration (can be jerky)
+  - Higher values = smoother acceleration
+  - Range: 0-32767
+
+PWM Limit: Maximum voltage/power to motor
+  - Set to 885 (100% of available power)
+  - DO NOT EXCEED 885
+
+Current Limit: Maximum current (torque) allowed
+  - Set to 1193 (2.69A - maximum for XL430-W250)
+  - DO NOT EXCEED 1193
+
+The servos are now configured for MAXIMUM POWER to overcome gravity!
+
+
+TROUBLESHOOTING:
+
+1. "Failed to open port":
+   - Check if arm is powered on
+   - Verify USB cable is connected
+   - Run: ls -l /dev/ttyUSB0
+   - Check permissions with: groups
+
+2. "No servos found":
+   - Try different baudrate
+   - Check if servos are powered
+   - Verify servo IDs match configuration
+
+3. Servo not responding:
+   - Run scan_servos.py to verify IDs
+   - Check if baudrate matches servo configuration
+   - Ensure torque is enabled
+
+4. Movement still feels weak/insufficient power:
+   - Check power supply: XL430 needs adequate voltage (11.1V recommended)
+   - Try INCREASING PROFILE_VELOCITY for MORE TORQUE (slower = stronger)
+   - Maximum settings are already applied (PWM=885, Current=1193)
+   - XL430 servos have physical limits (1.5 N⋅m stall torque)
+   - Consider supporting the arm mechanically if still insufficient
+
+5. Movement is jerky/laggy:
+   - Run: python tune_movement.py
+   - Try "Fast & Snappy" preset or adjust values
+   - Lower Profile Velocity = faster
+   - Lower Profile Acceleration = more aggressive
+
+6. Red flashing LED / Motor not responding:
+   - This is an OVERLOAD error (motor drawing too much current)
+   - Happens when lifting heavy loads or at position limits
+   - Press 'X' in control_arm.py to REBOOT and clear the error
+   - The servo will restart and be reconfigured automatically
+   - Alternative: Run 'python check_errors.py' and clear from there
+   - Reduce DEGREES_PER_STEP if errors happen frequently
+   - Increase PROFILE_VELOCITY for slower, more controlled movement
+   - Normal with heavy loads - just reboot and continue!
+   
+   If errors persist after clearing:
+   - Power supply may be inadequate (check voltage ~11.1V)
+   - Servo may be overheating (let it cool for a few minutes)
+   - Mechanical binding or obstruction
+   - Try slower movements (higher PROFILE_VELOCITY)
+
+7. Motor stops responding at certain positions:
+   - May be hitting position limits (safety feature)
+   - Press 'P' to see current positions and limits
+   - Adjust POSITION_LIMITS in control_arm.py if needed
+   - Some positions require more torque (increase PROFILE_VELOCITY)
+
+8. Base rotation moves to extreme/gets stuck:
+   - Press 'H' to center all servos to safe position (2048)
+   - Check that position readings are valid (press 'P')
+   - Movement now shows: before -> after (Δchange)
+   - If position reading fails, you'll see error message
+   - Try power cycling the arm if issue persists
+
+
+FILES:
+
+  scan_servos.py    - Scan for connected servos
+  control_arm.py    - Main keyboard control program
+  tune_movement.py  - Adjust movement smoothness
+  check_errors.py   - Check servo errors & status (NEW!)
+  requirements.txt  - Python dependencies
+  setup.sh         - Setup script
+  venv/            - Python virtual environment
+
