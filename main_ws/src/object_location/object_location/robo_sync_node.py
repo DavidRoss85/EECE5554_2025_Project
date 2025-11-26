@@ -22,7 +22,7 @@ class RoboSyncNode(Node):
     DEFAULT_STATIC_TRANSFORM_TOPIC = '/tf_static'
     DEFAULT_PUBLISH_TOPIC = '/sync/robot/state'
     MAX_MSG = 10
-    DEFAULT_SLOP = 0.1
+    DEFAULT_SLOP = 1.1
 
 
     def __init__(self):

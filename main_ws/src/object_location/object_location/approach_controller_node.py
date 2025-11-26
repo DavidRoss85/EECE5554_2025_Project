@@ -204,7 +204,7 @@ class ApproachControllerNode(Node):
                 self.approach_target(self.item_location)
     
     def approach_target(self, item):
-        twist = TwistStamped()
+        move_msg = TwistStamped()
         
         # Angular control1
         # error_x = target_x - self.image_center_x
@@ -215,8 +215,8 @@ class ApproachControllerNode(Node):
         distance_error = item['distance'] - self.target_distance
         
 
-        if abs(distance_error) <= self.distance_tolerance:# and abs(item['yaw']) <= self.angular_tolerance:
-            twist.linear.x = 0.5
+        # if abs(distance_error) <= self.distance_tolerance:# and abs(item['yaw']) <= self.angular_tolerance:
+        move_msg.twist.linear.x = 0.5
 
         #     if not self.target_reached:
         #         # self.get_logger().info('✅ TARGET REACHED!')
@@ -248,7 +248,7 @@ class ApproachControllerNode(Node):
         #         throttle_duration_sec=1.0
         #     )
         
-        self.cmd_vel_pub.publish(twist)
+        self.cmd_vel_pub.publish(move_msg)
     
     def stop_robot(self):
         twist = TwistStamped()
