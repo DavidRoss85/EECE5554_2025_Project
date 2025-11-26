@@ -182,7 +182,6 @@ class DistanceNode(Node):
             # Depth lookup at bounding-box center
             # Note: numpy uses [row=y, col=x]
             relative_location.distance = float(depth_map[yc, xc]/self.__depth_factor)  # Distance in m
-            print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} m")
 
             # Compute angular offset based on horizontal pixel location
             relative_location.relative_yaw = float(
@@ -192,6 +191,7 @@ class DistanceNode(Node):
                     xc
                 )
             )
+            print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} m \n Yaw: {relative_location.relative_yaw:.2f}°")
 
             locations_list.append(relative_location)
             # print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} mm, Yaw: {relative_location.relative_yaw:.2f}°")

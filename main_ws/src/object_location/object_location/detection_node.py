@@ -53,7 +53,7 @@ class DetectionNode(Node):
     # Default values:
     DEFAULT_MAX = 10
     DEFAULT_THRESHOLD = 0.5
-    DEFAULT_FEED_SHOW = False
+    DEFAULT_FEED_SHOW = True
     DEFAULT_SHOULD_PUBLISH = True
     DEFAULT_LINE_THICKNESS = 2
     DEFAULT_FONT_SCALE = 0.5
