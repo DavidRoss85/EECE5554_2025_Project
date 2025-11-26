@@ -10,9 +10,22 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import numpy as np
 
-from object_location_interfaces.msg import RSyncDetectionList, DetectedItem, RoboSync
+from object_location_interfaces.msg import RSyncDetectionList, DetectedItem, RoboSync,LocationList,ItemLocation,RSyncLocationList
 
 class ApproachControllerNode(Node):
+
+    DEFAULT_TARGET_CLASS = 'bottle'
+    DEFAULT_TARGET_DISTANCE = 0.4  # meters
+    DEFAULT_MAX_LINEAR_SPEED = 0.15  # m/s
+    DEFAULT_MAX_ANGULAR_SPEED = 0.5  # rad/s
+    DEFAULT_KP_ANGULAR = 0.004
+    DEFAULT_KP_LINEAR = 0.5
+    DEFAULT_IMAGE_WIDTH = 320
+    DEFAULT_DISTANCE_TOLERANCE = 0.05  # meters
+    DEFAULT_ANGULAR_TOLERANCE = 1  # degree
+    DEFAULT_ENABLED = True
+    DEFAULT_TIMEOUT = 2.0  # seconds
+
     def __init__(self):
         super().__init__('approach_controller_node')
         
@@ -29,17 +42,18 @@ class ApproachControllerNode(Node):
         self.declare_parameter('enabled', True)
         self.declare_parameter('timeout', 2.0)
         
-        self.target_class = self.get_parameter('target_class').value
-        self.target_distance = self.get_parameter('target_distance').value
-        self.max_linear_speed = self.get_parameter('max_linear_speed').value
-        self.max_angular_speed = self.get_parameter('max_angular_speed').value
-        self.kp_angular = self.get_parameter('kp_angular').value
-        self.kp_linear = self.get_parameter('kp_linear').value
-        self.image_width = self.get_parameter('image_width').value
-        self.distance_tolerance = self.get_parameter('distance_tolerance').value
-        self.angular_tolerance = self.get_parameter('angular_tolerance').value
-        self.enabled = self.get_parameter('enabled').value
-        self.timeout = self.get_parameter('timeout').value
+        self.target_class = self.DEFAULT_TARGET_CLASS
+        self.target_distance = self.DEFAULT_TARGET_DISTANCE
+        self.max_linear_speed = self.DEFAULT_MAX_LINEAR_SPEED
+        self.max_angular_speed = self.DEFAULT_MAX_ANGULAR_SPEED
+        self.kp_angular = self.DEFAULT_KP_ANGULAR
+        self.kp_linear = self.DEFAULT_KP_LINEAR
+        self.image_width = self.DEFAULT_IMAGE_WIDTH
+        self.distance_tolerance = self.DEFAULT_DISTANCE_TOLERANCE
+        self.angular_tolerance = self.DEFAULT_ANGULAR_TOLERANCE
+        self.enabled = self.DEFAULT_ENABLED
+        self.timeout = self.DEFAULT_TIMEOUT
+        self.item_location = None
         
         self.image_center_x = self.image_width / 2
         self.bridge = CvBridge()
@@ -53,8 +67,8 @@ class ApproachControllerNode(Node):
         
         # Subscribers
         self.detection_sub = self.create_subscription(
-            RSyncDetectionList,
-            '/objects/detections',
+            RSyncLocationList,
+            '/objects/locations',
             self.detection_callback,
             10
         )
@@ -78,32 +92,40 @@ class ApproachControllerNode(Node):
         self.get_logger().info('='*60)
     
     def detection_callback(self, msg:RSyncDetectionList):
-        print("Detection callback triggered")
         try:
             target_found = False
             item_list = msg.detections.item_list
             for item in item_list:
                 if item.name == self.target_class:
-                    if len(item.xywh) >= 2:
-                        center_x = float(item.xywh[0])
-                        center_y = float(item.xywh[1])
+                    # if len(item.xywh) >= 2:
+                    center_x = 1#float(item.xywh[0])
+                    center_y = 1#float(item.xywh[1])
                         
-                        self.current_detection = {
-                            'center_x': center_x,
-                            'center_y': center_y,
-                            'name': item.name,
-                            'confidence': item.confidence
-                        }
-                        
-                        self.last_detection_time = self.get_clock().now()
-                        target_found = True
-                        
-                        if not self.approaching:
-                            self.get_logger().info(
-                                f'🎯 {item.name} detected at ({center_x:.0f}, {center_y:.0f})'
-                            )
-                        self.approaching = True
-                        break
+                    self.current_detection = {
+                        'center_x': 1,#center_x,
+                        'center_y': 1,#center_y,
+                        'name': item.name,
+                        'confidence': 1,#item.confidence,
+                        'distance': 1,#item.distance
+                    }
+
+                    self.item_location = {
+                        'name': item.name,
+                        'index': item.index,
+                        'distance': item.distance,
+                        'yaw': item.relative_yaw
+                    }
+
+                    
+                    self.last_detection_time = self.get_clock().now()
+                    target_found = True
+                    
+                    if not self.approaching:
+                        self.get_logger().info(
+                            f'🎯 {item.name} detected at ({center_x:.0f}, {center_y:.0f})'
+                        )
+                    self.approaching = True
+                    break
             
             if not target_found:
                 if self.approaching:
@@ -171,56 +193,60 @@ class ApproachControllerNode(Node):
                 self.target_reached = False
             return
         
-        if self.current_detection is not None and self.approaching:
-            distance = self.get_distance_from_depth(
-                self.current_detection['center_x'],
-                self.current_detection['center_y']
-            )
+        if self.item_location is not None and self.approaching:
+            # distance = self.get_distance_from_depth(
+            #     self.current_detection['center_x'],
+            #     self.current_detection['center_y']
+            # )
+            distance = self.item_location['distance']
             
             if distance is not None:
-                self.approach_target(self.current_detection['center_x'], distance)
+                self.approach_target(self.item_location)
     
-    def approach_target(self, target_x, distance):
+    def approach_target(self, item):
         twist = TwistStamped()
         
-        # Angular control
-        error_x = target_x - self.image_center_x
-        angular_vel = -self.kp_angular * error_x
+        # Angular control1
+        # error_x = target_x - self.image_center_x
+        angular_vel = -self.kp_angular * np.radians(item['yaw'])
         angular_vel = np.clip(angular_vel, -self.max_angular_speed, self.max_angular_speed)
         
         # Distance control
-        distance_error = distance - self.target_distance
+        distance_error = item['distance'] - self.target_distance
         
-        if abs(distance_error) <= self.distance_tolerance and abs(error_x) <= self.angular_tolerance:
-            if not self.target_reached:
-                self.get_logger().info('✅ TARGET REACHED!')
-                self.target_reached = True
+
+        if abs(distance_error) <= self.distance_tolerance:# and abs(item['yaw']) <= self.angular_tolerance:
+            twist.linear.x = 0.5
+
+        #     if not self.target_reached:
+        #         # self.get_logger().info('✅ TARGET REACHED!')
+        #         # self.target_reached = True
             
-            twist.linear.x = 0.0
-            twist.angular.z = angular_vel * 0.3
-        else:
-            self.target_reached = False
+        #         twist.linear.x = 0.0
+        #         twist.angular.z = angular_vel * 0.3
+        # else:
+        #     self.target_reached = False
             
-            if abs(distance_error) > self.distance_tolerance:
-                linear_vel = self.kp_linear * distance_error
+        #     if abs(distance_error) > self.distance_tolerance:
+        #         linear_vel = self.kp_linear * distance_error
                 
-                if abs(error_x) > 100:
-                    linear_vel *= 0.3
-                elif abs(error_x) > 50:
-                    linear_vel *= 0.5
+        #         if abs(error_x) > 100:
+        #             linear_vel *= 0.3
+        #         elif abs(error_x) > 50:
+        #             linear_vel *= 0.5
                 
-                linear_vel = np.clip(linear_vel, -self.max_linear_speed, self.max_linear_speed)
-            else:
-                linear_vel = 0.0
+        #         linear_vel = np.clip(linear_vel, -self.max_linear_speed, self.max_linear_speed)
+        #     else:
+        #         linear_vel = 0.0
             
-            twist.linear.x = linear_vel
-            twist.angular.z = angular_vel
+        #     twist.linear.x = linear_vel
+        #     twist.angular.z = angular_vel
             
-            self.get_logger().info(
-                f'→ D={distance:.2f}m | err={distance_error:+.2f}m | '
-                f'angle_err={error_x:+.0f}px | v={linear_vel:.2f} w={angular_vel:.2f}',
-                throttle_duration_sec=1.0
-            )
+        #     self.get_logger().info(
+        #         f'→ D={distance:.2f}m | err={distance_error:+.2f}m | '
+        #         f'angle_err={error_x:+.0f}px | v={linear_vel:.2f} w={angular_vel:.2f}',
+        #         throttle_duration_sec=1.0
+        #     )
         
         self.cmd_vel_pub.publish(twist)
     
