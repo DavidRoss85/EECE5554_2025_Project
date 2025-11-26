@@ -49,6 +49,8 @@ class DistanceNode(Node):
 
     # Image + depth settings
     DEFAULT_IMAGE_ENCODING = 'passthrough'
+    DEFAULT_DEPTH_WIDTH = 320
+    DEFAULT_DEPTH_HEIGHT = 240
     DEFAULT_DEPTH_MIN = 1
     DEFAULT_DEPTH_MAX = 65000
     METER_DEPTH_FACTOR = 1
@@ -83,6 +85,11 @@ class DistanceNode(Node):
         self.__depth_max = self.DEFAULT_DEPTH_MAX
         self.__using_gazebo = self.DEFAULT_USING_GAZEBO
         self.__depth_factor = self.METER_DEPTH_FACTOR if self.__using_gazebo else self.MM_DEPTH_FACTOR
+
+        self.__depth_width = self.DEFAULT_DEPTH_WIDTH
+        self.__depth_height = self.DEFAULT_DEPTH_HEIGHT
+        self.__image_width = self.DEFAULT_CAMERA_PIXEL_WIDTH
+        self.__image_height = self.DEFAULT_CAMERA_PIXEL_HEIGHT
 
         # Placeholder for parameter server imports
         self.__load_parameters()
@@ -139,7 +146,15 @@ class DistanceNode(Node):
 
         # Extract YOLO detections and depth image
         detection_list = message.detections.item_list
+        rgb_image = message.robo_sync.rgb_image
         depth_image = message.robo_sync.depth_image
+
+        # Get dimensions
+        self.__image_width = rgb_image.width
+        self.__image_height = rgb_image.height
+
+        self.__depth_height = depth_image.height
+        self.__depth_width = depth_image.width
         locations_list = []
 
         # Convert ROS Image → OpenCV
@@ -156,6 +171,13 @@ class DistanceNode(Node):
 
             # YOLO bounding box: (xc, yc, width, height)
             xc, yc, w, h = item.xywh
+            # Scale bounding box center to depth image resolution
+            x_ratio = xc / self.__image_width
+            y_ratio = yc / self.__image_height
+
+            # Apply ratios to depth image size
+            xc = int(x_ratio * self.__depth_width)
+            yc = int(y_ratio * self.__depth_height)
 
             # Depth lookup at bounding-box center
             # Note: numpy uses [row=y, col=x]
