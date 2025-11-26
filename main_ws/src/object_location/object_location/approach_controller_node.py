@@ -231,8 +231,8 @@ class ApproachControllerNode(Node):
         if abs(distance_error) >= self.distance_tolerance:
             move_msg.twist.linear.x = 0.5
 
-        if abs(item['yaw']) >= self.angular_tolerance:
-            move_msg.twist.angular.z = angular_vel
+        # if abs(item['yaw']) >= self.angular_tolerance:
+        move_msg.twist.angular.z = angular_vel
 
         #     if not self.target_reached:
         #         # self.get_logger().info('✅ TARGET REACHED!')
