@@ -9,6 +9,7 @@ import numpy as np
 # ROS2 Imports
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy, ReliabilityPolicy, DurabilityPolicy
 from std_msgs.msg import Header
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TransformStamped
@@ -25,7 +26,7 @@ from object_location_interfaces.msg import (
 # OpenCV imports
 import cv2      #pip3 install opencv-python
 from cv_bridge import CvBridge
-
+#
 
 class DistanceNode(Node):
     """
@@ -40,6 +41,11 @@ class DistanceNode(Node):
     DEFAULT_PUBLISH_TOPIC = '/objects/locations'
     DEFAULT_DETECTIONS_TOPIC = '/objects/detections'
     MAX_MSG = 10
+    DEFAULT_QOS = QoSProfile(
+        reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        durability=QoSDurabilityPolicy.VOLATILE,
+        depth=MAX_MSG
+    )
 
     # Image + depth settings
     DEFAULT_IMAGE_ENCODING = 'passthrough'
@@ -68,6 +74,8 @@ class DistanceNode(Node):
         self.__detections_topic = self.DEFAULT_DETECTIONS_TOPIC
         self.__locations_topic = self.DEFAULT_PUBLISH_TOPIC
         self.__max_msg = self.MAX_MSG
+        self.__qos = self.DEFAULT_QOS
+
         self.__camera_width_res = self.DEFAULT_CAMERA_PIXEL_WIDTH         # Width in pixels of the image used for yaw calculation
         self.__camera_angle_width = self.DEFAULT_CAMERA_FOV_ANGLE        # Horizontal field of view of the camera (degrees)
         self.__image_encoding = self.DEFAULT_IMAGE_ENCODING
@@ -89,7 +97,7 @@ class DistanceNode(Node):
                 RSyncDetectionList,
                 self.__detections_topic,
                 self.__process_detections,
-                self.__max_msg
+                self.__qos
             )
             self.get_logger().info(f'Subscribed to detection topic: {self.__detections_topic}')
 
@@ -97,7 +105,7 @@ class DistanceNode(Node):
             self.__locations_pub = self.create_publisher(
                 RSyncLocationList,
                 self.__locations_topic,
-                self.__max_msg
+                self.__qos
             )
             self.get_logger().info(f'Publisher created on topic: {self.__locations_topic}')
 

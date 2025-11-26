@@ -5,6 +5,7 @@ Approach Controller Node - Uses RSyncDetectionList and RoboSync
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 from geometry_msgs.msg import TwistStamped
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
@@ -13,6 +14,14 @@ import numpy as np
 from object_location_interfaces.msg import RSyncDetectionList, DetectedItem, RoboSync,LocationList,ItemLocation,RSyncLocationList
 
 class ApproachControllerNode(Node):
+
+    MAX_MSG = 10
+
+    DEFAULT_QOS = QoSProfile(
+        reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        durability=QoSDurabilityPolicy.VOLATILE,
+        depth=MAX_MSG
+    )
 
     DEFAULT_TARGET_CLASS = 'bottle'
     DEFAULT_TARGET_DISTANCE = 0.4  # meters
@@ -42,6 +51,8 @@ class ApproachControllerNode(Node):
         self.declare_parameter('enabled', True)
         self.declare_parameter('timeout', 2.0)
         
+        self.__qos = self.DEFAULT_QOS
+
         self.target_class = self.DEFAULT_TARGET_CLASS
         self.target_distance = self.DEFAULT_TARGET_DISTANCE
         self.max_linear_speed = self.DEFAULT_MAX_LINEAR_SPEED
@@ -70,7 +81,7 @@ class ApproachControllerNode(Node):
             RSyncLocationList,
             '/objects/locations',
             self.detection_callback,
-            10
+            self.__qos
         )
         
         # self.sync_sub = self.create_subscription(

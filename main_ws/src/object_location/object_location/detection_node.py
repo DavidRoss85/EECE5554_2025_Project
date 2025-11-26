@@ -8,6 +8,7 @@ import numpy as np
 # ROS2 Imports
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy, ReliabilityPolicy, DurabilityPolicy
 from std_msgs.msg import Header
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TransformStamped
@@ -34,6 +35,12 @@ class DetectionNode(Node):
     DEFAULT_SYNC_TOPIC = '/sync/robot/state'
     DEFAULT_PUBLISH_TOPIC = '/objects/detections'
     MAX_MSG = 10
+    DEFAULT_QOS = QoSProfile(
+        reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        durability=QoSDurabilityPolicy.VOLATILE,
+        depth=MAX_MSG
+    )
+
 
     # YOLO
     YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
@@ -64,6 +71,7 @@ class DetectionNode(Node):
         self.__sync_topic = self.DEFAULT_SYNC_TOPIC
         self.__publish_topic = self.DEFAULT_PUBLISH_TOPIC
         self.__max_msg = self.MAX_MSG
+        self.__qos = self.DEFAULT_QOS
 
         self.__bgr_font_color = self.DEFAULT_BGR_FONT_COLOR
         self.__bgr_box_color = self.DEFAULT_BGR_BOX_COLOR
@@ -94,7 +102,7 @@ class DetectionNode(Node):
                 RSync,
                 self.__sync_topic,
                 self.__process_detections,
-                self.__max_msg
+                self.__qos
             )
             self.get_logger().info(f'Subscribed to sync topic: {self.__sync_topic}')
 
@@ -102,7 +110,7 @@ class DetectionNode(Node):
             self.__detection_pub = self.create_publisher(
                 RSyncDetectionList,
                 self.__publish_topic,
-                10
+                self.__qos
             )
             self.get_logger().info(f'Publisher created on topic: {self.__publish_topic}')
 
