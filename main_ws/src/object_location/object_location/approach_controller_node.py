@@ -94,7 +94,7 @@ class ApproachControllerNode(Node):
     def detection_callback(self, msg:RSyncDetectionList):
         try:
             target_found = False
-            item_list = msg.detections.item_list
+            item_list = msg.locations.location_list
             for item in item_list:
                 if item.name == self.target_class:
                     # if len(item.xywh) >= 2:
