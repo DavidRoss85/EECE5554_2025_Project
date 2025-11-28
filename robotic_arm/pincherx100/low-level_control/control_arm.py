@@ -248,7 +248,7 @@ class ArmController:
         dxl_comm_result, dxl_error = self.packetHandler.reboot(self.portHandler, servo_id)
         
         if dxl_comm_result == COMM_SUCCESS:
-            print("✓")
+            print("OK")
             # Wait for servo to restart
             time.sleep(0.5)
             
@@ -265,7 +265,7 @@ class ArmController:
             self.packetHandler.write1ByteTxRx(self.portHandler, servo_id, ADDR_TORQUE_ENABLE, 1)
             return True
         else:
-            print("✗ Failed")
+            print("Failed")
             return False
     
     def set_goal_position(self, servo_id, position):
@@ -282,7 +282,7 @@ class ArmController:
         has_error, error_msgs = self.check_hardware_error(servo_id)
         if has_error:
             self.error_count += 1
-            print(f"\n⚠️  Servo {servo_id} ERROR: {', '.join(error_msgs)}")
+            print(f"\nServo {servo_id} ERROR: {', '.join(error_msgs)}")
             print(f"   Error count: {self.error_count}. Press 'X' to clear errors.")
             return False
         
@@ -296,12 +296,12 @@ class ArmController:
         current_pos = self.get_present_position(servo_id)
         
         if current_pos is None:
-            print(f"\n⚠️  Cannot read position from servo {servo_id}")
+            print(f"\nCannot read position from servo {servo_id}")
             return False
         
         # Validate current position is reasonable
         if current_pos < 0 or current_pos > 4095:
-            print(f"\n⚠️  Invalid position {current_pos} from servo {servo_id}")
+            print(f"\nInvalid position {current_pos} from servo {servo_id}")
             return False
         
         new_pos = current_pos + delta
@@ -404,10 +404,10 @@ class ArmController:
                 limit_info = "[0-4095]"
             
             if pos is not None:
-                status = "⚠️ ERROR" if has_error else "✓ OK"
+                status = "ERROR" if has_error else "OK"
                 print(f"  {name:12} (ID {servo_id}): {pos:4d} {limit_info:15} {status}")
                 if has_error:
-                    print(f"               → {', '.join(error_msgs)}")
+                    print(f"               -> {', '.join(error_msgs)}")
         
         print("=" * 70)
     
@@ -442,9 +442,9 @@ class ArmController:
                 print(f"{name:12} (ID {servo_id}): {current_pos:4d} -> {target_pos:4d}...", end=" ")
                 success = self.set_goal_position(servo_id, target_pos)
                 if success:
-                    print("✓")
+                    print("OK")
                 else:
-                    print("✗")
+                    print("Failed")
             else:
                 print(f"{name:12} (ID {servo_id}): Cannot read position")
         
@@ -486,9 +486,9 @@ class ArmController:
                 print(f"\n{name} (ID {servo_id}): {', '.join(error_msgs)}")
                 success = self.clear_hardware_error(servo_id)
                 if success:
-                    print(f"  → ✓ Error cleared")
+                    print(f"  -> Error cleared")
                 else:
-                    print(f"  → ✗ Failed to clear error")
+                    print(f"  -> Failed to clear error")
         
         if not errors_found:
             print("\nNo errors found on any servos.")
@@ -505,12 +505,12 @@ class ArmController:
                 if has_error:
                     remaining_errors = True
                     name = servo_names.get(servo_id, f"Servo {servo_id}")
-                    print(f"⚠️  {name} (ID {servo_id}): Still has errors: {', '.join(error_msgs)}")
+                    print(f"  {name} (ID {servo_id}): Still has errors: {', '.join(error_msgs)}")
             
             if not remaining_errors:
-                print("✓ All errors successfully cleared!")
+                print("All errors successfully cleared!")
             else:
-                print("\n⚠️  Some errors remain. This may indicate:")
+                print("\nSome errors remain. This may indicate:")
                 print("  - Hardware problem (check connections)")
                 print("  - Power supply issue (check voltage)")
                 print("  - Mechanical obstruction (check for binding)")

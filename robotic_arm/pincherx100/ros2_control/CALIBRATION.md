@@ -143,7 +143,7 @@ Based on typical PincherX100 mechanical design:
 | Wrist    | 1024        | 3072        | 90°           | 270°          | Prevent gripper collision |
 | Gripper  | 1500        | 2600        | 132°          | 228°          | Depends on gripper design |
 
-⚠️ **Important**: These are examples. Your limits may differ based on:
+ **Important**: These are examples. Your limits may differ based on:
 - Mounting configuration
 - Workspace constraints
 - Gripper type
@@ -442,7 +442,7 @@ pwm_limit: 885            # Max: 885 (100% voltage)
 current_limit: 1193       # Max: 1193 (2.69A for XL430)
 ```
 
-⚠️ **Warning**: Do not exceed these maximum values:
+ **Warning**: Do not exceed these maximum values:
 - PWM_LIMIT: 885
 - CURRENT_LIMIT: 1193 (for XL430-W250)
 

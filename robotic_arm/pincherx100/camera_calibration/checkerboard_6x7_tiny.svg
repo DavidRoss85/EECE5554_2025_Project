@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Checkerboard Pattern for Camera Calibration -->
+<!-- 6x7 inner corners (7x8 squares) -->
+<!-- Square size: 12mm (1.2cm) -->
+<!-- Total size: 84mm x 96mm (8.4cm x 9.6cm) -->
+<!-- Fits within printer limit: 8.5cm x 10cm -->
+<svg width="210mm" height="297mm" viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg">
+  <title>Checkerboard 6x7 - Fits 8.5cm x 10cm Printer</title>
+  
+  <!-- White background -->
+  <rect width="210" height="297" fill="white"/>
+  
+  <!-- Title and info -->
+  <text x="105" y="20" font-family="Arial" font-size="5" text-anchor="middle" fill="black" font-weight="bold">
+    Camera Calibration Checkerboard - TINY VERSION
+  </text>
+  <text x="105" y="27" font-family="Arial" font-size="3.5" text-anchor="middle" fill="black">
+    6x7 Inner Corners (7x8 Squares) • Square: 12mm • Total: 8.4cm x 9.6cm
+  </text>
+  <text x="105" y="33" font-family="Arial" font-size="3.5" text-anchor="middle" fill="green" font-weight="bold">
+    ✓ Fits within 8.5cm x 10cm printer limit
+  </text>
+  <text x="105" y="39" font-family="Arial" font-size="3" text-anchor="middle" fill="red" font-weight="bold">
+    ⚠ Print at 100% scale - Measure actual square size with ruler ⚠
+  </text>
+  
+  <!-- Checkerboard centered -->
+  <!-- 7 columns x 8 rows = 56 squares -->
+  <!-- Square size: 12mm -->
+  <!-- Total width: 7 * 12 = 84mm (8.4cm) -->
+  <!-- Total height: 8 * 12 = 96mm (9.6cm) -->
+  <!-- Center: x = (210 - 84) / 2 = 63mm -->
+  <!-- y = 55mm from top -->
+  
+  <g transform="translate(63, 55)">
+    <!-- Row 1 -->
+    <rect x="0" y="0" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="12" y="0" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="24" y="0" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="36" y="0" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="48" y="0" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="60" y="0" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="72" y="0" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    
+    <!-- Row 2 -->
+    <rect x="0" y="12" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="12" y="12" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="24" y="12" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="36" y="12" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="48" y="12" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="60" y="12" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="72" y="12" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    
+    <!-- Row 3 -->
+    <rect x="0" y="24" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="12" y="24" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="24" y="24" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="36" y="24" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="48" y="24" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="60" y="24" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="72" y="24" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    
+    <!-- Row 4 -->
+    <rect x="0" y="36" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="12" y="36" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="24" y="36" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="36" y="36" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="48" y="36" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="60" y="36" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="72" y="36" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    
+    <!-- Row 5 -->
+    <rect x="0" y="48" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="12" y="48" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="24" y="48" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="36" y="48" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="48" y="48" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="60" y="48" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="72" y="48" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    
+    <!-- Row 6 -->
+    <rect x="0" y="60" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="12" y="60" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="24" y="60" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="36" y="60" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="48" y="60" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="60" y="60" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="72" y="60" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    
+    <!-- Row 7 -->
+    <rect x="0" y="72" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="12" y="72" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="24" y="72" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="36" y="72" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="48" y="72" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="60" y="72" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="72" y="72" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    
+    <!-- Row 8 -->
+    <rect x="0" y="84" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="12" y="84" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="24" y="84" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="36" y="84" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="48" y="84" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    <rect x="60" y="84" width="12" height="12" fill="black" stroke="black" stroke-width="0.2"/>
+    <rect x="72" y="84" width="12" height="12" fill="white" stroke="black" stroke-width="0.2"/>
+    
+    <!-- Outer border -->
+    <rect x="0" y="0" width="84" height="96" fill="none" stroke="black" stroke-width="0.8"/>
+  </g>
+  
+  <!-- Measurement indicators -->
+  <g transform="translate(63, 156)">
+    <!-- Horizontal -->
+    <line x1="0" y1="4" x2="84" y2="4" stroke="blue" stroke-width="0.4"/>
+    <line x1="0" y1="0" x2="0" y2="8" stroke="blue" stroke-width="0.4"/>
+    <line x1="84" y1="0" x2="84" y2="8" stroke="blue" stroke-width="0.4"/>
+    <text x="42" y="3" font-family="Arial" font-size="2.5" text-anchor="middle" fill="blue">
+      84mm (8.4cm)
+    </text>
+  </g>
+  
+  <g transform="translate(152, 55)">
+    <!-- Vertical -->
+    <line x1="4" y1="0" x2="4" y2="96" stroke="blue" stroke-width="0.4"/>
+    <line x1="0" y1="0" x2="8" y2="0" stroke="blue" stroke-width="0.4"/>
+    <line x1="0" y1="96" x2="8" y2="96" stroke="blue" stroke-width="0.4"/>
+    <text x="18" y="48" font-family="Arial" font-size="2.5" text-anchor="start" fill="blue">
+      96mm (9.6cm)
+    </text>
+  </g>
+  
+  <!-- Instructions -->
+  <text x="105" y="175" font-family="Arial" font-size="4" text-anchor="middle" fill="black" font-weight="bold">
+    CRITICAL INSTRUCTIONS:
+  </text>
+  <text x="105" y="182" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    1. Print at 100% scale (actual size) on your 8.5cm x 10cm printer
+  </text>
+  <text x="105" y="188" font-family="Arial" font-size="3" text-anchor="middle" fill="red" font-weight="bold">
+    2. IMPORTANT: Measure actual printed square size with ruler!
+  </text>
+  <text x="105" y="194" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    3. If squares print as 11mm instead of 12mm, use --square 11 in calibration
+  </text>
+  <text x="105" y="200" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    4. Mount on rigid flat surface (foam board or cardboard)
+  </text>
+  <text x="105" y="206" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    5. Ensure perfectly flat - no bending or warping
+  </text>
+  
+  <text x="105" y="218" font-family="Arial" font-size="3.5" text-anchor="middle" fill="green" font-weight="bold">
+    Calibration command (adjust --square based on YOUR measurement):
+  </text>
+  <text x="105" y="225" font-family="Arial" font-size="3" text-anchor="middle" fill="blue" font-weight="bold">
+    python calibrate_camera.py --pattern 6x7 --square 12
+  </text>
+  <text x="105" y="231" font-family="Arial" font-size="2.5" text-anchor="middle" fill="black">
+    (Use measured square size, e.g., if 11mm actual, use --square 11)
+  </text>
+</svg>
+

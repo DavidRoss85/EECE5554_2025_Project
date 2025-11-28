@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Checkerboard Pattern for Camera Calibration -->
+<!-- 6x5 inner corners (7x6 squares) -->
+<!-- Square size: 15mm (1.5cm) -->
+<!-- Total size: 105mm x 90mm (10.5cm x 9cm) -->
+<!-- Print this at 100% scale (do not scale to fit) -->
+<svg width="210mm" height="297mm" viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg">
+  <title>Checkerboard Calibration Pattern 6x5 (Small)</title>
+  
+  <!-- White background -->
+  <rect width="210" height="297" fill="white"/>
+  
+  <!-- Instructions text -->
+  <text x="105" y="25" font-family="Arial" font-size="5" text-anchor="middle" fill="black" font-weight="bold">
+    Camera Calibration Checkerboard - SMALL VERSION
+  </text>
+  <text x="105" y="32" font-family="Arial" font-size="3.5" text-anchor="middle" fill="black">
+    6x5 Inner Corners (7x6 Squares) • Square Size: 15mm • Total: 10.5cm x 9cm
+  </text>
+  <text x="105" y="38" font-family="Arial" font-size="3" text-anchor="middle" fill="red" font-weight="bold">
+    ⚠ Print at 100% scale - Do NOT scale to fit page ⚠
+  </text>
+  
+  <!-- Checkerboard pattern centered -->
+  <!-- 7 columns x 6 rows = 42 squares -->
+  <!-- Square size: 15mm -->
+  <!-- Total width: 7 * 15 = 105mm (10.5cm) -->
+  <!-- Total height: 6 * 15 = 90mm (9cm) -->
+  <!-- Center on page: x = (210 - 105) / 2 = 52.5mm -->
+  <!-- Start at y = 60mm from top -->
+  
+  <g transform="translate(52.5, 60)">
+    <!-- Row 1 -->
+    <rect x="0" y="0" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="15" y="0" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="30" y="0" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="45" y="0" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="60" y="0" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="75" y="0" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="90" y="0" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    
+    <!-- Row 2 -->
+    <rect x="0" y="15" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="15" y="15" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="30" y="15" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="45" y="15" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="60" y="15" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="75" y="15" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="90" y="15" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    
+    <!-- Row 3 -->
+    <rect x="0" y="30" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="15" y="30" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="30" y="30" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="45" y="30" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="60" y="30" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="75" y="30" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="90" y="30" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    
+    <!-- Row 4 -->
+    <rect x="0" y="45" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="15" y="45" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="30" y="45" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="45" y="45" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="60" y="45" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="75" y="45" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="90" y="45" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    
+    <!-- Row 5 -->
+    <rect x="0" y="60" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="15" y="60" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="30" y="60" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="45" y="60" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="60" y="60" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="75" y="60" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="90" y="60" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    
+    <!-- Row 6 -->
+    <rect x="0" y="75" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="15" y="75" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="30" y="75" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="45" y="75" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="60" y="75" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    <rect x="75" y="75" width="15" height="15" fill="black" stroke="black" stroke-width="0.3"/>
+    <rect x="90" y="75" width="15" height="15" fill="white" stroke="black" stroke-width="0.3"/>
+    
+    <!-- Outer border -->
+    <rect x="0" y="0" width="105" height="90" fill="none" stroke="black" stroke-width="1"/>
+  </g>
+  
+  <!-- Measurement indicators -->
+  <g transform="translate(52.5, 155)">
+    <!-- Horizontal measurement -->
+    <line x1="0" y1="5" x2="105" y2="5" stroke="blue" stroke-width="0.5"/>
+    <line x1="0" y1="0" x2="0" y2="10" stroke="blue" stroke-width="0.5"/>
+    <line x1="105" y1="0" x2="105" y2="10" stroke="blue" stroke-width="0.5"/>
+    <text x="52.5" y="3" font-family="Arial" font-size="3" text-anchor="middle" fill="blue">
+      105mm (10.5cm)
+    </text>
+  </g>
+  
+  <g transform="translate(162.5, 60)">
+    <!-- Vertical measurement -->
+    <line x1="5" y1="0" x2="5" y2="90" stroke="blue" stroke-width="0.5"/>
+    <line x1="0" y1="0" x2="10" y2="0" stroke="blue" stroke-width="0.5"/>
+    <line x1="0" y1="90" x2="10" y2="90" stroke="blue" stroke-width="0.5"/>
+    <text x="20" y="45" font-family="Arial" font-size="3" text-anchor="start" fill="blue">
+      90mm (9cm)
+    </text>
+  </g>
+  
+  <!-- Bottom instructions -->
+  <text x="105" y="180" font-family="Arial" font-size="4" text-anchor="middle" fill="black" font-weight="bold">
+    PRINTING INSTRUCTIONS:
+  </text>
+  <text x="105" y="188" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    1. Print at 100% scale (actual size) - DO NOT use "Fit to Page"
+  </text>
+  <text x="105" y="194" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    2. Verify with ruler: Each square = 15mm (1.5cm), Total = 10.5cm x 9cm
+  </text>
+  <text x="105" y="200" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    3. Mount on RIGID FLAT surface (foam board, cardboard, or thin wood)
+  </text>
+  <text x="105" y="206" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    4. Ensure pattern is perfectly flat - warping affects calibration accuracy
+  </text>
+  <text x="105" y="212" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    5. Use good lighting with no shadows on the pattern
+  </text>
+  
+  <text x="105" y="225" font-family="Arial" font-size="3.5" text-anchor="middle" fill="green" font-weight="bold">
+    ✓ This smaller size fits comfortably on A4/Letter paper
+  </text>
+  <text x="105" y="232" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    Calibration command: python calibrate_camera.py --pattern 6x5 --square 15
+  </text>
+</svg>
+
+

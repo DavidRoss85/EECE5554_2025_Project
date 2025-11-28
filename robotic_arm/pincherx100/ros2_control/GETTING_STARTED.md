@@ -2,7 +2,7 @@
 
 **Welcome!** This guide will get you up and running with the PincherX100 ROS2 control system in Docker.
 
-## ⚡ Quick Start (5 Minutes)
+##  Quick Start (5 Minutes)
 
 ### Prerequisites Check
 
@@ -58,11 +58,11 @@ ros2 service call /gripper_open std_srvs/srv/Trigger
 ros2 service call /gripper_close std_srvs/srv/Trigger
 ```
 
-**Success!** If the arm moves, you're ready to go! 🎉
+**Success!** If the arm moves, you're ready to go! 
 
 ---
 
-## 📚 Documentation Overview
+##  Documentation Overview
 
 This project includes comprehensive documentation:
 
@@ -83,7 +83,7 @@ This project includes comprehensive documentation:
 
 ---
 
-## 🎯 What Can This System Do?
+##  What Can This System Do?
 
 ### Control Methods
 
@@ -111,7 +111,7 @@ This project includes comprehensive documentation:
 
 ---
 
-## 🚀 Common Use Cases
+##  Common Use Cases
 
 ### 1. Simple Movement
 
@@ -177,7 +177,7 @@ def main():
 
 ---
 
-## 🔧 First-Time Setup Checklist
+##  First-Time Setup Checklist
 
 Before using the arm for the first time:
 
@@ -191,14 +191,14 @@ Before using the arm for the first time:
 
 ---
 
-## 🐳 Docker Environment
+##  Docker Environment
 
 ### Why Docker?
 
-- ✅ **No contamination** - Host system stays clean
-- ✅ **Reproducible** - Same environment everywhere
-- ✅ **Isolated** - All ROS2 dependencies contained
-- ✅ **Easy cleanup** - Remove container to clean up
+-  **No contamination** - Host system stays clean
+-  **Reproducible** - Same environment everywhere
+-  **Isolated** - All ROS2 dependencies contained
+-  **Easy cleanup** - Remove container to clean up
 
 ### How It Works
 
@@ -226,7 +226,7 @@ The source code is mounted as a volume:
 
 ---
 
-## 💡 Tips for Success
+##  Tips for Success
 
 ### 1. Use Multiple Terminals
 
@@ -285,7 +285,7 @@ ros2 topic echo /joint_states
 
 ---
 
-## 🔍 Troubleshooting Quick Reference
+##  Troubleshooting Quick Reference
 
 ### Container won't start
 ```bash
@@ -327,7 +327,7 @@ docker exec pincherx100_ros2 bash -c "cd /ros2_ws && colcon build --symlink-inst
 
 ---
 
-## 📝 Configuration
+##  Configuration
 
 Main configuration file:
 ```
@@ -346,7 +346,7 @@ After editing, restart the controller to apply changes.
 
 ---
 
-## 📖 Learning Path
+##  Learning Path
 
 ### Beginner
 1. Read [SETUP_GUIDE.md](./SETUP_GUIDE.md)
@@ -369,7 +369,7 @@ After editing, restart the controller to apply changes.
 
 ---
 
-## 🎓 Example Scripts Location
+##  Example Scripts Location
 
 Find example scripts in [USAGE.md](./USAGE.md):
 - Service calling (preset poses)
@@ -413,7 +413,7 @@ Find example scripts in [USAGE.md](./USAGE.md):
 
 ---
 
-## 🎉 Next Steps
+##  Next Steps
 
 Now that you have a working system:
 
@@ -425,7 +425,7 @@ Now that you have a working system:
 
 ---
 
-## 📋 Command Cheat Sheet
+##  Command Cheat Sheet
 
 ```bash
 # Build system
@@ -456,7 +456,7 @@ docker-compose down
 
 ---
 
-## ✅ Quick Verification
+##  Quick Verification
 
 After setup, verify everything works:
 
@@ -479,11 +479,11 @@ docker exec -it pincherx100_ros2 bash
 ros2 service call /go_home std_srvs/srv/Trigger
 ```
 
-If all steps succeed, you're ready to go! 🚀
+If all steps succeed, you're ready to go! 
 
 ---
 
-**Happy Robot Programming!** 🤖
+**Happy Robot Programming!** 
 
 For detailed information, please refer to the comprehensive documentation files in this directory.
 

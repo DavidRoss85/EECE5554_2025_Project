@@ -4,15 +4,15 @@ ROS2 Humble control system for the PincherX100 robotic arm using Dynamixel XL430
 
 ## Features
 
-- ✅ **Topic-based control**: Position and velocity commands
-- ✅ **Joint state publishing**: Real-time feedback at 50Hz
-- ✅ **Trajectory execution**: Follow joint trajectories via action server
-- ✅ **Preset poses**: Home, Sleep, Ready positions via services
-- ✅ **Gripper control**: Open/close services
-- ✅ **Safety features**: Joint limit enforcement
-- ✅ **Docker containerized**: Isolated ROS2 environment
-- ✅ **Calibration tools**: Interactive calibration script
-- ✅ **Test utilities**: Joint testing and verification
+-  **Topic-based control**: Position and velocity commands
+-  **Joint state publishing**: Real-time feedback at 50Hz
+-  **Trajectory execution**: Follow joint trajectories via action server
+-  **Preset poses**: Home, Sleep, Ready positions via services
+-  **Gripper control**: Open/close services
+-  **Safety features**: Joint limit enforcement
+-  **Docker containerized**: Isolated ROS2 environment
+-  **Calibration tools**: Interactive calibration script
+-  **Test utilities**: Joint testing and verification
 
 ## System Architecture
 
@@ -215,7 +215,7 @@ ros2 topic echo /joint_states
 
 ## Safety Notes
 
-⚠️ **Important Safety Information:**
+ **Important Safety Information:**
 
 1. **Joint Limits**: Always configure appropriate joint limits in `arm_config.yaml` to prevent mechanical damage
 2. **Emergency Stop**: Press Ctrl+C to stop the controller and disable torque

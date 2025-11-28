@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Checkerboard Pattern for Camera Calibration -->
+<!-- 8x6 inner corners (9x7 squares) -->
+<!-- Square size: 25mm (2.5cm) -->
+<!-- Print this at 100% scale (do not scale to fit) -->
+<svg width="210mm" height="297mm" viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg">
+  <title>Checkerboard Calibration Pattern 8x6</title>
+  
+  <!-- White background -->
+  <rect width="210" height="297" fill="white"/>
+  
+  <!-- Instructions text -->
+  <text x="105" y="20" font-family="Arial" font-size="4" text-anchor="middle" fill="black">
+    Camera Calibration Checkerboard - 8x6 Inner Corners (9x7 Squares)
+  </text>
+  <text x="105" y="26" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    Square Size: 25mm (2.5cm) - Print at 100% scale - Do NOT scale to fit page
+  </text>
+  <text x="105" y="31" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    Mount on rigid flat surface (cardboard, foam board, or wood) after printing
+  </text>
+  
+  <!-- Checkerboard pattern centered -->
+  <!-- 9 columns x 7 rows = 63 squares -->
+  <!-- Square size: 25mm -->
+  <!-- Total width: 9 * 25 = 225mm -->
+  <!-- Total height: 7 * 25 = 175mm -->
+  <!-- Start position to center: x = (210 - 225) / 2 = -7.5 (will shift right) -->
+  <!-- Let's use x = 10mm margin, y = 60mm from top -->
+  
+  <g transform="translate(17.5, 60)">
+    <!-- Draw checkerboard -->
+    <rect x="0" y="0" width="25" height="25" fill="black"/>
+    <rect x="25" y="0" width="25" height="25" fill="white"/>
+    <rect x="50" y="0" width="25" height="25" fill="black"/>
+    <rect x="75" y="0" width="25" height="25" fill="white"/>
+    <rect x="100" y="0" width="25" height="25" fill="black"/>
+    <rect x="125" y="0" width="25" height="25" fill="white"/>
+    <rect x="150" y="0" width="25" height="25" fill="black"/>
+    <rect x="175" y="0" width="25" height="25" fill="white"/>
+    <rect x="200" y="0" width="25" height="25" fill="black"/>
+    
+    <rect x="0" y="25" width="25" height="25" fill="white"/>
+    <rect x="25" y="25" width="25" height="25" fill="black"/>
+    <rect x="50" y="25" width="25" height="25" fill="white"/>
+    <rect x="75" y="25" width="25" height="25" fill="black"/>
+    <rect x="100" y="25" width="25" height="25" fill="white"/>
+    <rect x="125" y="25" width="25" height="25" fill="black"/>
+    <rect x="150" y="25" width="25" height="25" fill="white"/>
+    <rect x="175" y="25" width="25" height="25" fill="black"/>
+    <rect x="200" y="25" width="25" height="25" fill="white"/>
+    
+    <rect x="0" y="50" width="25" height="25" fill="black"/>
+    <rect x="25" y="50" width="25" height="25" fill="white"/>
+    <rect x="50" y="50" width="25" height="25" fill="black"/>
+    <rect x="75" y="50" width="25" height="25" fill="white"/>
+    <rect x="100" y="50" width="25" height="25" fill="black"/>
+    <rect x="125" y="50" width="25" height="25" fill="white"/>
+    <rect x="150" y="50" width="25" height="25" fill="black"/>
+    <rect x="175" y="50" width="25" height="25" fill="white"/>
+    <rect x="200" y="50" width="25" height="25" fill="black"/>
+    
+    <rect x="0" y="75" width="25" height="25" fill="white"/>
+    <rect x="25" y="75" width="25" height="25" fill="black"/>
+    <rect x="50" y="75" width="25" height="25" fill="white"/>
+    <rect x="75" y="75" width="25" height="25" fill="black"/>
+    <rect x="100" y="75" width="25" height="25" fill="white"/>
+    <rect x="125" y="75" width="25" height="25" fill="black"/>
+    <rect x="150" y="75" width="25" height="25" fill="white"/>
+    <rect x="175" y="75" width="25" height="25" fill="black"/>
+    <rect x="200" y="75" width="25" height="25" fill="white"/>
+    
+    <rect x="0" y="100" width="25" height="25" fill="black"/>
+    <rect x="25" y="100" width="25" height="25" fill="white"/>
+    <rect x="50" y="100" width="25" height="25" fill="black"/>
+    <rect x="75" y="100" width="25" height="25" fill="white"/>
+    <rect x="100" y="100" width="25" height="25" fill="black"/>
+    <rect x="125" y="100" width="25" height="25" fill="white"/>
+    <rect x="150" y="100" width="25" height="25" fill="black"/>
+    <rect x="175" y="100" width="25" height="25" fill="white"/>
+    <rect x="200" y="100" width="25" height="25" fill="black"/>
+    
+    <rect x="0" y="125" width="25" height="25" fill="white"/>
+    <rect x="25" y="125" width="25" height="25" fill="black"/>
+    <rect x="50" y="125" width="25" height="25" fill="white"/>
+    <rect x="75" y="125" width="25" height="25" fill="black"/>
+    <rect x="100" y="125" width="25" height="25" fill="white"/>
+    <rect x="125" y="125" width="25" height="25" fill="black"/>
+    <rect x="150" y="125" width="25" height="25" fill="white"/>
+    <rect x="175" y="125" width="25" height="25" fill="black"/>
+    <rect x="200" y="125" width="25" height="25" fill="white"/>
+    
+    <rect x="0" y="150" width="25" height="25" fill="black"/>
+    <rect x="25" y="150" width="25" height="25" fill="white"/>
+    <rect x="50" y="150" width="25" height="25" fill="black"/>
+    <rect x="75" y="150" width="25" height="25" fill="white"/>
+    <rect x="100" y="150" width="25" height="25" fill="black"/>
+    <rect x="125" y="150" width="25" height="25" fill="white"/>
+    <rect x="150" y="150" width="25" height="25" fill="black"/>
+    <rect x="175" y="150" width="25" height="25" fill="white"/>
+    <rect x="200" y="150" width="25" height="25" fill="black"/>
+    
+    <!-- Border -->
+    <rect x="0" y="0" width="225" height="175" fill="none" stroke="black" stroke-width="0.5"/>
+  </g>
+  
+  <!-- Bottom instructions -->
+  <text x="105" y="255" font-family="Arial" font-size="3.5" text-anchor="middle" fill="black" font-weight="bold">
+    PRINTING INSTRUCTIONS:
+  </text>
+  <text x="105" y="261" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    1. Print on white paper or cardstock at 100% scale (no scaling)
+  </text>
+  <text x="105" y="266" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    2. Verify square size with ruler: each square should be exactly 25mm (2.5cm)
+  </text>
+  <text x="105" y="271" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    3. Mount on RIGID FLAT surface (foam board, cardboard, or wood)
+  </text>
+  <text x="105" y="276" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    4. Ensure pattern is perfectly flat - any warping will affect calibration
+  </text>
+  <text x="105" y="281" font-family="Arial" font-size="3" text-anchor="middle" fill="black">
+    5. Use good lighting to ensure clear contrast between black and white squares
+  </text>
+</svg>
+

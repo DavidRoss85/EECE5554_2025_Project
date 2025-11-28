@@ -35,19 +35,19 @@ SERVO_NAMES = {1: "Base", 2: "Shoulder", 3: "Elbow", 4: "Wrist", 5: "Gripper"}
 def decode_error(error_status):
     """Decode hardware error status byte."""
     if error_status == 0:
-        return "✓ No errors"
+        return "No errors"
     
     errors = []
     if error_status & 0x01:
-        errors.append("⚠️  Input Voltage Error")
+        errors.append("Input Voltage Error")
     if error_status & 0x04:
-        errors.append("🔥 Overheating Error")
+        errors.append("Overheating Error")
     if error_status & 0x08:
-        errors.append("⚙️  Motor Encoder Error")
+        errors.append("Motor Encoder Error")
     if error_status & 0x10:
-        errors.append("⚡ Electrical Shock Error")
+        errors.append("Electrical Shock Error")
     if error_status & 0x20:
-        errors.append("💪 OVERLOAD Error (most common)")
+        errors.append("OVERLOAD Error (most common)")
     
     return "\n       ".join(errors)
 
@@ -57,11 +57,11 @@ def check_servos():
     packetHandler = PacketHandler(PROTOCOL_VERSION)
     
     if not portHandler.openPort():
-        print(f"❌ Failed to open {DEVICENAME}")
+        print(f" Failed to open {DEVICENAME}")
         return
     
     if not portHandler.setBaudRate(BAUDRATE):
-        print(f"❌ Failed to set baudrate to {BAUDRATE}")
+        print(f" Failed to set baudrate to {BAUDRATE}")
         return
     
     print("=" * 70)
@@ -80,7 +80,7 @@ def check_servos():
         )
         
         if comm_result != COMM_SUCCESS:
-            print(f"[ID {servo_id}] {name:12} - ❌ Communication failed")
+            print(f"[ID {servo_id}] {name:12} - Communication failed")
             continue
         
         # Read position
@@ -106,14 +106,14 @@ def check_servos():
         
         if error_status != 0:
             any_errors = True
-            print(f"    → 🔧 Press 'X' in control_arm.py to clear")
+            print(f"    -> Press 'X' in control_arm.py to clear")
         
         print()
     
     print("=" * 70)
     
     if any_errors:
-        print("\n⚠️  ERRORS DETECTED!")
+        print("\nERRORS DETECTED!")
         print("\nCommon causes:")
         print("  • OVERLOAD: Motor working too hard (lifting heavy load)")
         print("  • Overheating: Motor getting too hot (let it cool)")
@@ -129,7 +129,7 @@ def check_servos():
             print("  1. Run: python control_arm.py")
             print("  2. Press 'X' to clear errors")
     else:
-        print("\n✅ All servos OK! No errors detected.")
+        print("\nAll servos OK! No errors detected.")
     
     portHandler.closePort()
 
@@ -154,7 +154,7 @@ def clear_errors(portHandler, packetHandler):
             comm_result, _ = packetHandler.reboot(portHandler, servo_id)
             
             if comm_result == COMM_SUCCESS:
-                print("✓")
+                print("OK")
                 time.sleep(0.5)
                 
                 # Reconfigure after reboot
@@ -164,9 +164,9 @@ def clear_errors(portHandler, packetHandler):
                 packetHandler.write4ByteTxRx(portHandler, servo_id, ADDR_PROFILE_ACCELERATION, PROFILE_ACCELERATION)
                 packetHandler.write1ByteTxRx(portHandler, servo_id, ADDR_TORQUE_ENABLE, 1)
                 
-                print(f"  → Reconfigured with max power settings")
+                print(f"  -> Reconfigured with max power settings")
             else:
-                print("✗ Failed")
+                print("Failed")
     
     print("\n" + "=" * 70)
     print("Done! Checking status...")
@@ -183,15 +183,15 @@ def clear_errors(portHandler, packetHandler):
         
         if comm_result == COMM_SUCCESS:
             if error_status == 0:
-                print(f"{name:12} (ID {servo_id}): ✓ OK")
+                print(f"{name:12} (ID {servo_id}): OK")
             else:
-                print(f"{name:12} (ID {servo_id}): ⚠️  Still has errors")
+                print(f"{name:12} (ID {servo_id}): Still has errors")
                 any_remaining = True
     
     if not any_remaining:
-        print("\n✅ All errors cleared successfully!")
+        print("\nAll errors cleared successfully!")
     else:
-        print("\n⚠️  Some errors could not be cleared.")
+        print("\nSome errors could not be cleared.")
         print("This may indicate a hardware or power issue.")
 
 if __name__ == "__main__":
