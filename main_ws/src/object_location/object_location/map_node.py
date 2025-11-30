@@ -22,7 +22,11 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .helpers import find_a_star_path, quaternion_to_yaw, inflate_obstacles,transform_2d
+from .helpers import (
+    find_a_star_path, quaternion_to_yaw, 
+    inflate_obstacles, inflate_obstacles2, inflate_gaussian_multiclass,
+    transform_2d
+)
 import cv2
 
 class MapGenerator(Node):
@@ -37,7 +41,9 @@ class MapGenerator(Node):
     DEFAULT_ROBOT_WIDTH_METERS = 0.36
     DEFAULT_ROBOT_POSE_QUATERNION = [0,0,0,[0,0,0,0]]
 
-    DEFAULT_OBSTACLE_MARKER_VALUE = 100  # Value to mark detected objects on overlay grid
+    DEFAULT_OBSTACLE_MARKER_VALUE = 101  # Value to mark detected objects on overlay grid
+    DEFAULT_ROBOT_MARKER_VALUE = 99  # Value to mark robot path on navigation grid
+    DEFAULT_INFLATION_METERS = 0.2  # Meters to inflate detected objects on overlay
 
     #----------------------------------------------------------------------------------
     def __init__(self):
@@ -55,6 +61,9 @@ class MapGenerator(Node):
         self.__map_info = None
         self.__path_map = None
         self.__occupancy_number_start = self.DEFAULT_OBSTACLE_MARKER_VALUE
+        self.__robot_marker_number = self.DEFAULT_ROBOT_MARKER_VALUE
+        self.__object_inflation_factor = self.DEFAULT_INFLATION_METERS  # Additive for how much to inflate detected objects on overlay (meters)
+
         self.__items_grid = np.zeros((1,1)) # Placeholder until map received
         self.__navigation_grid = np.zeros((1,1)) # Placeholder until map received
         self.__last_robot_pose = self.DEFAULT_ROBOT_POSE_QUATERNION
@@ -206,8 +215,8 @@ class MapGenerator(Node):
         for item in msg.locations.location_list:
             item_dist = item.distance   # in meters
             item_yaw = math.radians(item.relative_yaw)
-            print(f"Item {item.name}: distance={item.distance:.2f}m, relative_yaw={item_yaw:.2f}deg")
-            print(f"Robot Pose: x={rx:.2f}m, y={ry:.2f}m, yaw={math.degrees(r_yaw):.2f}deg")
+            # print(f"Item {item.name}: distance={item.distance:.2f}m, relative_yaw={item_yaw:.2f}deg")
+            # print(f"Robot Pose: x={rx:.2f}m, y={ry:.2f}m, yaw={math.degrees(r_yaw):.2f}deg")
 
             # # Calculate x and y offset from robot
             # x_offset = math.cos(item_yaw)*item_dist #Meters
@@ -218,6 +227,8 @@ class MapGenerator(Node):
             #     rx, ry, r_yaw,
             #     x_offset, y_offset
             # )
+
+            # Alternative calculation (Remember to Come back to this):
             actual_yaw = r_yaw - item_yaw
             item_x = rx + math.cos(actual_yaw)*item_dist
             item_y = ry + math.sin(actual_yaw)*item_dist
@@ -259,21 +270,20 @@ class MapGenerator(Node):
         r_yaw = quaternion_to_yaw(rq) # In radians
 
         i,j = self.__convert_world_to_grid(rx,ry)
-        map[i,j] = self.__occupancy_number_start  # Mark robot path on map
-        map[i+1,j] = self.__occupancy_number_start
-        map[i-1,j] = self.__occupancy_number_start
-        map[i,j+1] = self.__occupancy_number_start
-        map[i,j-1] = self.__occupancy_number_start
+        map[i,j] = self.__robot_marker_number  # Mark robot path on map
+
+        #Make a circular vicinity around robot
         for theta in range(1,360,1):
             for r in range (1,5):
                 di = round(r*math.sin(theta))
                 dj = round(r*math.cos(theta))
-                map[i+di,j+dj]= self.__occupancy_number_start
+                map[i+di,j+dj]= self.__robot_marker_number -1  # Mark robot vicinity on map
 
+        #Make a line in front of robot
         for ilen in range(1,10):
             di = round(ilen * math.sin(r_yaw))
             dj = round(ilen * math.cos(r_yaw))
-            map[i+di,j+dj] = self.__occupancy_number_start  # Mark direction on map
+            map[i+di,j+dj] = self.__robot_marker_number # Mark robot forward path on map
 
             
         self.__path_map = map
@@ -284,7 +294,7 @@ class MapGenerator(Node):
         new_msg.data = map.flatten().astype(np.int8).tolist()
         self.__navigation_publisher.publish(new_msg)
 
-
+    #----------------------------------------------------------------------------------
     def __fuse_navigation_overlay(self):
             pass
     #----------------------------------------------------------------------------------
@@ -312,7 +322,12 @@ class MapGenerator(Node):
         overlay_msg.info = self.__map_info
 
         # Inflate points to be bigger on map for visualization
-        self.__items_grid = inflate_obstacles(self.__items_grid, self.__robot_width, self.__map_info.resolution, self.__occupancy_number_start)
+        self.__items_grid = inflate_obstacles(
+            self.__items_grid, 
+            inflation_factor = self.__object_inflation_factor, 
+            resolution = self.__map_info.resolution, 
+            threshold = self.__occupancy_number_start
+        )
         
         # Flatten array for messaging
         overlay_msg.data = self.__items_grid.flatten().astype(np.int8).tolist()
