@@ -8,11 +8,10 @@ import numpy as np
 # ROS2 Imports
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy, ReliabilityPolicy, DurabilityPolicy
 from std_msgs.msg import Header
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TransformStamped
-from object_location_interfaces.msg import RoboSync as RSync, DetectedItem, DetectionList, RSyncDetectionList, RSyncDetectionList
+from object_location_interfaces.msg import RoboSync as RSync, DetectedItem, DetectionList, RSyncDetectionList
 
 
 # OpenCV imports
@@ -35,16 +34,10 @@ class DetectionNode(Node):
     DEFAULT_SYNC_TOPIC = '/sync/robot/state'
     DEFAULT_PUBLISH_TOPIC = '/objects/detections'
     MAX_MSG = 10
-    DEFAULT_QOS = QoSProfile(
-        reliability=QoSReliabilityPolicy.BEST_EFFORT,
-        durability=QoSDurabilityPolicy.VOLATILE,
-        depth=MAX_MSG
-    )
-
 
     # YOLO
     YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
-    DEFAULT_YOLO_MODEL_PATH = YOLO_MODEL_LIST[2]  # Use yolov8n.pt for nano model
+    DEFAULT_YOLO_MODEL_PATH = YOLO_MODEL_LIST[1]  # Use yolov8n.pt for nano model
     DEFAULT_CONFIDENCE_THRESHOLD = 0.8
 
     #OpenCV
@@ -52,14 +45,12 @@ class DetectionNode(Node):
 
     # Default values:
     DEFAULT_MAX = 10
-    DEFAULT_THRESHOLD = 0.5
-    DEFAULT_FEED_SHOW = True
+    DEFAULT_FEED_SHOW = False
     DEFAULT_SHOULD_PUBLISH = True
     DEFAULT_LINE_THICKNESS = 2
     DEFAULT_FONT_SCALE = 0.5
     DEFAULT_BGR_FONT_COLOR = (0,255,0)
     DEFAULT_BGR_BOX_COLOR = (255,0,0)
-    DEFAULT_WANTED_LIST = ['bottle']  # Empty list means all items are wanted
 
     def __init__(self):
         super().__init__('detection_node')
@@ -71,7 +62,6 @@ class DetectionNode(Node):
         self.__sync_topic = self.DEFAULT_SYNC_TOPIC
         self.__publish_topic = self.DEFAULT_PUBLISH_TOPIC
         self.__max_msg = self.MAX_MSG
-        self.__qos = self.DEFAULT_QOS
 
         self.__bgr_font_color = self.DEFAULT_BGR_FONT_COLOR
         self.__bgr_box_color = self.DEFAULT_BGR_BOX_COLOR
@@ -81,9 +71,9 @@ class DetectionNode(Node):
         self.__show_cv_feed = self.DEFAULT_FEED_SHOW
         self.__pure_image = None    #Stores the pure image returned from the camera
         self.__annotated_image = None   #Stores the image with boxes and identifiers
-        self.__detection_threshold = self.DEFAULT_THRESHOLD   # Threshold for detecting items
+        self.__detection_threshold = self.DEFAULT_CONFIDENCE_THRESHOLD   # Threshold for detecting items
         self.__detected_list = []   #Stores a list of detected items
-        self.__wanted_list = self.DEFAULT_WANTED_LIST # Update this list to filter detections
+        self.__wanted_list = [] # Update this list to filter detections
         self.__still_in_function = False
 
         self.__load_parameters()    #Load external parameters
@@ -102,7 +92,7 @@ class DetectionNode(Node):
                 RSync,
                 self.__sync_topic,
                 self.__process_detections,
-                self.__qos
+                self.__max_msg
             )
             self.get_logger().info(f'Subscribed to sync topic: {self.__sync_topic}')
 
@@ -110,7 +100,7 @@ class DetectionNode(Node):
             self.__detection_pub = self.create_publisher(
                 RSyncDetectionList,
                 self.__publish_topic,
-                self.__qos
+                10
             )
             self.get_logger().info(f'Publisher created on topic: {self.__publish_topic}')
 
@@ -127,7 +117,7 @@ class DetectionNode(Node):
 
     #----------------------------------------------------------------------------------
     def __process_detections(self,message:RSync):
-        print("Processing Detections...")
+
         rgb_image = message.rgb_image
 
         # Convert ros2 message to image:
@@ -142,10 +132,8 @@ class DetectionNode(Node):
         
         
         # Get items and label if meet criteria
-        count = 0
         if results.boxes is not None:
             for box in results.boxes:
-                count +=1
                 if self.__meets_critera(box):
                     # Get box coordinates:
                     x1,y1,x2,y2 = map(int,box.xyxy[0].tolist()) #Convert tensor to list
@@ -185,8 +173,6 @@ class DetectionNode(Node):
                         text = item_name,
                         bgr = self.__bgr_font_color
                     )
-                    # if count >= 10:
-                    #     break
                 # for i in range(100000000):
                 #     pass
 

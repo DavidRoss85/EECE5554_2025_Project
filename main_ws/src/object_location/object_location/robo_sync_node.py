@@ -4,7 +4,6 @@
 # ROS2 Imports
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy, ReliabilityPolicy, DurabilityPolicy
 from tf2_ros import Buffer, TransformListener
 from message_filters import ApproximateTimeSynchronizer, Subscriber #pip3 install message-filters
 from sensor_msgs.msg import Image
@@ -18,18 +17,12 @@ class RoboSyncNode(Node):
 
     #Class Constants
     DEFAULT_IMAGE_TOPIC = '/oakd/rgb/preview/image_raw'
-    DEFAULT_DEPTH_TOPIC =  '/oakd/stereo/image_raw' # '/oakd/rgb/preview/depth'
+    DEFAULT_DEPTH_TOPIC = '/oakd/rgb/preview/depth' # '/oakd/stereo/image_raw'
     DEFAULT_DYNAMIC_TRANSFORM_TOPIC = '/tf'
     DEFAULT_STATIC_TRANSFORM_TOPIC = '/tf_static'
     DEFAULT_PUBLISH_TOPIC = '/sync/robot/state'
     MAX_MSG = 10
-    DEFAULT_SLOP = 1.1
-
-    DEFAULT_QOS = QoSProfile(
-        reliability=QoSReliabilityPolicy.BEST_EFFORT,
-        durability=QoSDurabilityPolicy.VOLATILE,
-        depth=MAX_MSG
-    )
+    DEFAULT_SLOP = 0.1
 
 
     def __init__(self):
@@ -44,7 +37,6 @@ class RoboSyncNode(Node):
         self.__publish_topic = self.DEFAULT_PUBLISH_TOPIC
         self.__max_msg = self.MAX_MSG
         self.__slop = self.DEFAULT_SLOP
-        self.__qos = self.DEFAULT_QOS
         
         self.__load_parameters()
         try:
@@ -74,7 +66,7 @@ class RoboSyncNode(Node):
             self.__pub = self.create_publisher(
                 RSync,
                 self.__publish_topic,
-                self.__qos
+                self.__max_msg
             )
 
 
@@ -104,7 +96,7 @@ class RoboSyncNode(Node):
 
         # When perfected, should publish only when all three messages are available
         self.__pub.publish(sync_msg)
-        self.get_logger().info('Published synchronized message.')
+        #self.get_logger().info('Published synchronized message.')
 
     #----------------------------------------------------------------------------------
     def __get_robot_pose(self):

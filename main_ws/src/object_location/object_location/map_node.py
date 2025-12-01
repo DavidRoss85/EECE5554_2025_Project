@@ -43,7 +43,8 @@ class MapGenerator(Node):
 
     DEFAULT_OBSTACLE_MARKER_VALUE = 101  # Value to mark detected objects on overlay grid
     DEFAULT_ROBOT_MARKER_VALUE = 99  # Value to mark robot path on navigation grid
-    DEFAULT_INFLATION_METERS = 0.2  # Meters to inflate detected objects on overlay
+    DEFAULT_INFLATION_METERS = 0.01  # Meters to inflate detected objects on overlay
+    DEFAULT_ROBOT_POSE_UPDATE_INCREMENT = 0.5
 
     #----------------------------------------------------------------------------------
     def __init__(self):
@@ -69,6 +70,13 @@ class MapGenerator(Node):
         self.__last_robot_pose = self.DEFAULT_ROBOT_POSE_QUATERNION
         self.__robot_width = self.DEFAULT_ROBOT_WIDTH_METERS
         
+        self.__robot_pose_update_increment = self.DEFAULT_ROBOT_POSE_UPDATE_INCREMENT
+
+        self.__pose_timer = self.create_timer(
+            self.__robot_pose_update_increment,
+            self.__plot_robot_path
+        )
+
         self.__locations_subscriber = self.create_subscription(
             RSyncLocationList,
             self.__locations_sub_topic,
@@ -130,6 +138,7 @@ class MapGenerator(Node):
                 new_info = msg.info # Get new info
 
                 self.__shift_location_overlay(old_info, new_info)   # Shift overlays
+                self.__overlay_publisher.publish(self.__generate_overlay_message())
 
         # Store new map data
         self.__map_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
@@ -208,7 +217,7 @@ class MapGenerator(Node):
         rq = my_pose.transform.rotation
         r_yaw = quaternion_to_yaw(rq) # In radians
         
-        self.__plot_robot_path(my_pose)
+        # self.__plot_robot_path(my_pose)
 
         item_world_locations = []
         # Loop through each detected item and plot on overlay
@@ -260,13 +269,20 @@ class MapGenerator(Node):
 
     #----------------------------------------------------------------------------------
     
-    def __plot_robot_path(self, pose, map=None):
+    def __plot_robot_path(self, pose=None, map=None):
+        if self.__map_info is None:
+            return
+        
         if map is None:
             map = np.copy(self.__map_data if self.__map_data is not None else np.zeros((1,1)))
-
         
-        rx, ry = pose.transform.translation.x, pose.transform.translation.y
-        rq = pose.transform.rotation
+        rx,ry,rq = 0,0,0
+        if pose is not None:
+            rx, ry = pose.transform.translation.x, pose.transform.translation.y
+            rq = pose.transform.rotation
+        else:
+            rx, ry, _, rq = self.__fetch_robot_world_location()
+
         r_yaw = quaternion_to_yaw(rq) # In radians
 
         i,j = self.__convert_world_to_grid(rx,ry)
@@ -318,19 +334,23 @@ class MapGenerator(Node):
         overlay_msg.header.stamp = self.get_clock().now().to_msg()
         overlay_msg.header.frame_id = 'overlay_map'
 
-        # Get dimensions
-        overlay_msg.info = self.__map_info
 
         # Inflate points to be bigger on map for visualization
-        self.__items_grid = inflate_obstacles(
+        items_grid = inflate_obstacles2(
             self.__items_grid, 
             inflation_factor = self.__object_inflation_factor, 
             resolution = self.__map_info.resolution, 
             threshold = self.__occupancy_number_start
         )
+
+        # Get dimensions
+        overlay_msg.info = self.__map_info
+        height, width = items_grid.shape[:2]
+        overlay_msg.info.height = height
+        overlay_msg.info.width = width
         
         # Flatten array for messaging
-        overlay_msg.data = self.__items_grid.flatten().astype(np.int8).tolist()
+        overlay_msg.data = items_grid.flatten().astype(np.int8).tolist()
         return overlay_msg
     #----------------------------------------------------------------------------------
     def __save_map_data(self):

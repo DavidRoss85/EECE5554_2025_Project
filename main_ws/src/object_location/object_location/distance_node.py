@@ -9,7 +9,6 @@ import numpy as np
 # ROS2 Imports
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy, ReliabilityPolicy, DurabilityPolicy
 from std_msgs.msg import Header
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TransformStamped
@@ -26,7 +25,7 @@ from object_location_interfaces.msg import (
 # OpenCV imports
 import cv2      #pip3 install opencv-python
 from cv_bridge import CvBridge
-#
+
 
 class DistanceNode(Node):
     """
@@ -41,21 +40,14 @@ class DistanceNode(Node):
     DEFAULT_PUBLISH_TOPIC = '/objects/locations'
     DEFAULT_DETECTIONS_TOPIC = '/objects/detections'
     MAX_MSG = 10
-    DEFAULT_QOS = QoSProfile(
-        reliability=QoSReliabilityPolicy.BEST_EFFORT,
-        durability=QoSDurabilityPolicy.VOLATILE,
-        depth=MAX_MSG
-    )
 
     # Image + depth settings
     DEFAULT_IMAGE_ENCODING = 'passthrough'
-    DEFAULT_DEPTH_WIDTH = 320
-    DEFAULT_DEPTH_HEIGHT = 240
     DEFAULT_DEPTH_MIN = 1
     DEFAULT_DEPTH_MAX = 65000
     METER_DEPTH_FACTOR = 1
     MM_DEPTH_FACTOR = 1000
-    DEFAULT_USING_GAZEBO = False    # Whether depth images are from Gazebo (meters) or real camera (mm)
+    DEFAULT_USING_GAZEBO = True
 
     # Camera intrinsics (unused right now, but available)
     DEFAULT_FOCAL_LENGTH = 870.0
@@ -76,8 +68,6 @@ class DistanceNode(Node):
         self.__detections_topic = self.DEFAULT_DETECTIONS_TOPIC
         self.__locations_topic = self.DEFAULT_PUBLISH_TOPIC
         self.__max_msg = self.MAX_MSG
-        self.__qos = self.DEFAULT_QOS
-
         self.__camera_width_res = self.DEFAULT_CAMERA_PIXEL_WIDTH         # Width in pixels of the image used for yaw calculation
         self.__camera_angle_width = self.DEFAULT_CAMERA_FOV_ANGLE        # Horizontal field of view of the camera (degrees)
         self.__image_encoding = self.DEFAULT_IMAGE_ENCODING
@@ -85,11 +75,6 @@ class DistanceNode(Node):
         self.__depth_max = self.DEFAULT_DEPTH_MAX
         self.__using_gazebo = self.DEFAULT_USING_GAZEBO
         self.__depth_factor = self.METER_DEPTH_FACTOR if self.__using_gazebo else self.MM_DEPTH_FACTOR
-
-        self.__depth_width = self.DEFAULT_DEPTH_WIDTH
-        self.__depth_height = self.DEFAULT_DEPTH_HEIGHT
-        self.__image_width = self.DEFAULT_CAMERA_PIXEL_WIDTH
-        self.__image_height = self.DEFAULT_CAMERA_PIXEL_HEIGHT
 
         # Placeholder for parameter server imports
         self.__load_parameters()
@@ -104,7 +89,7 @@ class DistanceNode(Node):
                 RSyncDetectionList,
                 self.__detections_topic,
                 self.__process_detections,
-                self.__qos
+                self.__max_msg
             )
             self.get_logger().info(f'Subscribed to detection topic: {self.__detections_topic}')
 
@@ -112,7 +97,7 @@ class DistanceNode(Node):
             self.__locations_pub = self.create_publisher(
                 RSyncLocationList,
                 self.__locations_topic,
-                self.__qos
+                self.__max_msg
             )
             self.get_logger().info(f'Publisher created on topic: {self.__locations_topic}')
 
@@ -146,15 +131,7 @@ class DistanceNode(Node):
 
         # Extract YOLO detections and depth image
         detection_list = message.detections.item_list
-        rgb_image = message.robo_sync.rgb_image
         depth_image = message.robo_sync.depth_image
-
-        # Get dimensions
-        self.__image_width = rgb_image.width
-        self.__image_height = rgb_image.height
-
-        self.__depth_height = depth_image.height
-        self.__depth_width = depth_image.width
         locations_list = []
 
         # Convert ROS Image → OpenCV
@@ -171,18 +148,21 @@ class DistanceNode(Node):
 
             # YOLO bounding box: (xc, yc, width, height)
             xc, yc, w, h = item.xywh
-            # Scale bounding box center to depth image resolution
-            x_ratio = xc / self.__image_width
-            y_ratio = yc / self.__image_height
 
-            # Apply ratios to depth image size
-            xc = int(x_ratio * self.__depth_width)
-            yc = int(y_ratio * self.__depth_height)
+            # Optional: Find closest depth value within bounding box (Only x axis used for now)
+            closest_point_on_x = float(self.__depth_max) # Large initial value
+            xl = int(xc - w/2)
+            xr = int(xc + w/2)
+            for n in range(xl , xr ):
+                # Note: numpy uses [row=y, col=x]
+                # Depth lookup at bounding-box center
+                closest_point_on_x = min(closest_point_on_x, depth_map[yc,n])
 
-            # Depth lookup at bounding-box center
-            # Note: numpy uses [row=y, col=x]
-            relative_location.distance = float(depth_map[yc, xc]/self.__depth_factor)  # Distance in m
-
+            relative_location.distance = float(closest_point_on_x) / self.__depth_factor  # Distance in m
+            # print(f"Item: {item.name}, xc: {xc}, yc: {yc}, w: {w}, h: {h}, xl: {xl}, xr: {xr}")
+            # print(f"Item: {item.name}, CLOSESET Distance: {relative_location.distance:.2f} m")
+            # relative_location.distance = float(depth_map[yc, xc]) / self.__depth_factor 
+            # print(f"Item: {item.name}, CENTER Distance: {relative_location.distance:.2f} m")
             # Compute angular offset based on horizontal pixel location
             relative_location.relative_yaw = float(
                 self.__calculate_yaw_from_pixels(
@@ -191,10 +171,10 @@ class DistanceNode(Node):
                     xc
                 )
             )
-            print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} m \n Yaw: {relative_location.relative_yaw:.2f}°")
+            # print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} mm, Yaw: {relative_location.relative_yaw:.2f}°")
 
             locations_list.append(relative_location)
-            # print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} mm, Yaw: {relative_location.relative_yaw:.2f}°")
+
         # Bundle computed locations and republish synchronized message
         rsync_msg = self.__generate_location_message(locations_list, message.robo_sync)
         self.__locations_pub.publish(rsync_msg)
