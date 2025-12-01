@@ -17,13 +17,13 @@ class ApproachControllerNode(Node):
 
     MAX_MSG = 10
 
-    DEFAULT_QOS = QoSProfile(
-        reliability=QoSReliabilityPolicy.BEST_EFFORT,
-        durability=QoSDurabilityPolicy.VOLATILE,
-        depth=MAX_MSG
-    )
+    DEFAULT_QOS = 10 # QoSProfile(
+    #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
+    #     durability=QoSDurabilityPolicy.VOLATILE,
+    #     depth=MAX_MSG
+    # )
 
-    DEFAULT_TARGET_CLASS = 'bottle'
+    DEFAULT_TARGET_CLASS = 'person'
     DEFAULT_TARGET_DISTANCE = 0.4  # meters
     DEFAULT_MAX_LINEAR_SPEED = 0.15  # m/s
     DEFAULT_MAX_ANGULAR_SPEED = 0.5  # rad/s
