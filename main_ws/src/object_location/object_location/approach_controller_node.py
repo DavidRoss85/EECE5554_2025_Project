@@ -113,49 +113,43 @@ class ApproachControllerNode(Node):
     def detection_callback(self, msg:RSyncDetectionList):
         try:
             target_found = False
+
+            # List of items detected
             item_list = msg.locations.location_list
             
             # Check list of detected items for desired item
             for item in item_list:
                 if item.name == self.target_class:
                     
-                    self.item_location = {
-                        'name': item.name,
-                        'index': item.index,
-                        'distance': item.distance,
-                        'yaw': item.relative_yaw
-                    }
+                    # Store item details
+                    self.update_item_details(item)
 
-                    # Put all of these in their own function:
-                    #---------------------------------------
-                    self.item_details = item
-                    self.item_details.relative_yaw = np.deg2rad(self.item_details.relative_yaw) if self.item_details.relative_yaw is not None else 0
-                    self.x_vel = min(self.item_details.distance, self.max_linear_speed)
-                    self.z_vel = (self.item_details.relative_yaw) *-1
-                    self.travel_distance = max(self.target_distance, (self.item_details.distance - self.target_distance))
-            
-                    #----------------------------------------
-
+                    # Remember time of detection:
                     self.last_detection_time = self.get_clock().now()
 
+                    # Calculate forward moving time
                     self.countdown_timer_forward = self.calculate_movement_time(
                         self.travel_distance,
                         self.x_vel
                     )
+
+                    # Calculate turning time (Use absolute values since angular velocities can be negative)
                     self.countdown_timer_turn = self.calculate_movement_time(
-                        abs(float(item.relative_yaw)),
+                        abs(float(self.item_details.relative_yaw)),
                         abs(self.z_vel)
                     )
 
                     target_found = True
                     
+                    # Notify user if located target
                     if not self.approaching:
                         self.get_logger().info(
-                            f'🎯 {item.name} detected at ({self.item_location['distance']:.2f}m, {self.item_location['yaw']:.2f})'
+                            f'🎯 {item.name} detected at ({item.distance:.2f}m, {item.relative_yaw:.2f})'
                         )
                     self.approaching = True
                     break
             
+            # Notify user if target is lost
             if not target_found:
                 if self.approaching:
                     self.get_logger().info(f'Lost {self.target_class}')
@@ -164,6 +158,14 @@ class ApproachControllerNode(Node):
                 
         except Exception as e:
             self.get_logger().error(f'Detection error: {str(e)}')
+
+    #-----------------------------------------------------------------------------------------------
+    def update_item_details(self, item):
+        self.item_details = item
+        self.item_details.relative_yaw = np.deg2rad(self.item_details.relative_yaw) if self.item_details.relative_yaw is not None else 0
+        self.x_vel = min(self.item_details.distance, self.max_linear_speed)
+        self.z_vel = (self.item_details.relative_yaw) *-1
+        self.travel_distance = max(self.target_distance, (self.item_details.distance - self.target_distance))
 
     #-----------------------------------------------------------------------------------------------
     def calculate_movement_time(self, distance,velocity):
