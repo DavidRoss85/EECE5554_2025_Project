@@ -48,6 +48,7 @@ class DistanceNode(Node):
     METER_DEPTH_FACTOR = 1
     MM_DEPTH_FACTOR = 1000
     DEFAULT_USING_GAZEBO = True
+    DEFAULT_SHOW_DEPTH = False
 
     # Camera intrinsics (unused right now, but available)
     DEFAULT_FOCAL_LENGTH = 870.0
@@ -74,6 +75,7 @@ class DistanceNode(Node):
         self.__depth_min = self.DEFAULT_DEPTH_MIN
         self.__depth_max = self.DEFAULT_DEPTH_MAX
         self.__using_gazebo = self.DEFAULT_USING_GAZEBO
+        self.__show_image = self.DEFAULT_SHOW_DEPTH                                       # Option to display depth image window
         self.__depth_factor = self.METER_DEPTH_FACTOR if self.__using_gazebo else self.MM_DEPTH_FACTOR
 
         # Placeholder for parameter server imports
@@ -178,6 +180,10 @@ class DistanceNode(Node):
         # Bundle computed locations and republish synchronized message
         rsync_msg = self.__generate_location_message(locations_list, message.robo_sync)
         self.__locations_pub.publish(rsync_msg)
+
+        if self.__show_image:
+            cv2.imshow("Depth Image", cv_image)
+            cv2.waitKey(1)
 
     #----------------------------------------------------------------------------------
     def __generate_location_message(self, locations_list, robo_sync):

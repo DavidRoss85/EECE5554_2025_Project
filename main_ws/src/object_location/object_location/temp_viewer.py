@@ -185,7 +185,7 @@ class TempViewer(Node):
         map_free_mask = map == 0
         map_occupied_mask = map == 100
         map_unknown_mask = map == 50
-        map_robot_mask = 99
+        map_robot_mask = map == 99
 
         map_bgr[map_free_mask] = [255, 255, 255]      # Free = White
         map_bgr[map_occupied_mask] = [0, 0, 0]          # Occupied = Black
@@ -228,7 +228,7 @@ class TempViewer(Node):
 
 
         cv2.imshow("Combined View", combined)
-        cv2.waitKey(1)
+        cv2.waitKey(100)
 
     #----------------------------------------------------------------------------------
 

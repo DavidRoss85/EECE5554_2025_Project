@@ -13,11 +13,14 @@ from object_location_interfaces.msg import RoboSync as RSync
 #Testing:
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
+DEFAULT_USING_GAZEBO = False
+
 class RoboSyncNode(Node):
 
     #Class Constants
     DEFAULT_IMAGE_TOPIC = '/oakd/rgb/preview/image_raw'
-    DEFAULT_DEPTH_TOPIC = '/oakd/rgb/preview/depth' # '/oakd/stereo/image_raw'
+    DEFAULT_DEPTH_TOPIC = '/oakd/stereo/image_raw'
+    DEFAULT_DEPTH_TOPIC_GAZEBO = '/oakd/rgb/preview/depth'
     DEFAULT_DYNAMIC_TRANSFORM_TOPIC = '/tf'
     DEFAULT_STATIC_TRANSFORM_TOPIC = '/tf_static'
     DEFAULT_PUBLISH_TOPIC = '/sync/robot/state'
@@ -33,7 +36,7 @@ class RoboSyncNode(Node):
         self.__depth_image = None
         self.__robot_pose = None
         self.__image_topic = self.DEFAULT_IMAGE_TOPIC
-        self.__depth_topic = self.DEFAULT_DEPTH_TOPIC
+        self.__depth_topic = self.DEFAULT_DEPTH_TOPIC if not DEFAULT_USING_GAZEBO else self.DEFAULT_DEPTH_TOPIC_GAZEBO
         self.__publish_topic = self.DEFAULT_PUBLISH_TOPIC
         self.__max_msg = self.MAX_MSG
         self.__slop = self.DEFAULT_SLOP

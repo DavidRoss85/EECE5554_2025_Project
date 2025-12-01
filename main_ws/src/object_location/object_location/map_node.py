@@ -285,23 +285,32 @@ class MapGenerator(Node):
 
         r_yaw = quaternion_to_yaw(rq) # In radians
 
-        i,j = self.__convert_world_to_grid(rx,ry)
-        map[i,j] = self.__robot_marker_number  # Mark robot path on map
+        i,j = self.__convert_world_to_grid(rx,ry)   # Convert to grid coords
 
-        #Make a circular vicinity around robot
-        for theta in range(1,360,1):
-            for r in range (1,5):
-                di = round(r*math.sin(theta))
-                dj = round(r*math.cos(theta))
-                map[i+di,j+dj]= self.__robot_marker_number -1  # Mark robot vicinity on map
+        # Verify that new coordinate is not out of bounds:
+        if i>0 and j>0 and i<map.shape[0] and j<map.shape[1]:
+            map[i,j] = self.__robot_marker_number  # Mark robot path on map
 
-        #Make a line in front of robot
-        for ilen in range(1,10):
-            di = round(ilen * math.sin(r_yaw))
-            dj = round(ilen * math.cos(r_yaw))
-            map[i+di,j+dj] = self.__robot_marker_number # Mark robot forward path on map
+            #Make a circular vicinity around robot
+            for theta in range(1,360,1):
+                for r in range (1,5):
+                    di = round(r*math.sin(theta))
+                    dj = round(r*math.cos(theta))
+                    if i+di<0 or j+dj<0 or i+di>=map.shape[0] or j+dj>=map.shape[1]:
+                        continue  # Out of bounds
 
-            
+                    map[i+di,j+dj]= self.__robot_marker_number  # Mark robot vicinity on map
+
+            #Make a line in front of robot
+            for ilen in range(1,10):
+                di = round(ilen * math.sin(r_yaw))
+                dj = round(ilen * math.cos(r_yaw))
+                if i+di<0 or j+dj<0 or i+di>=map.shape[0] or j+dj>=map.shape[1]:
+                    continue  # Out of bounds
+
+                map[i+di,j+dj] = self.__robot_marker_number # Mark robot forward path on map
+
+                
         self.__path_map = map
         new_msg = OccupancyGrid()
         new_msg.header.stamp = self.get_clock().now().to_msg()
