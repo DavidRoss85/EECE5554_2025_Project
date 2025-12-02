@@ -23,7 +23,7 @@ class ApproachControllerNode(Node):
     #     depth=MAX_MSG
     # )
 
-    DEFAULT_TARGET_CLASS = 'bottle'
+    DEFAULT_TARGET_CLASS = 'person'
     DEFAULT_TARGET_DISTANCE = 1  # meters
     DEFAULT_MAX_LINEAR_SPEED = .7  # m/s
     DEFAULT_MAX_ANGULAR_SPEED = .4  # rad/s

@@ -28,8 +28,8 @@ class RoboSyncNode(Node):
     DEFAULT_PUBLISH_TOPIC = '/sync/robot/state'
     MAX_MSG = 10
     DEFAULT_SLOP = 0.1
-    DEFAULT_SIMULATE_FRAME_LOSS = 5 #frames
-    DEFAULT_SIMULATE_LAG_TIME = .001   # seconds
+    DEFAULT_SIMULATE_FRAME_LOSS = 20 #frames
+    DEFAULT_SIMULATE_LAG_TIME = .5   # seconds
 
 
     def __init__(self):
