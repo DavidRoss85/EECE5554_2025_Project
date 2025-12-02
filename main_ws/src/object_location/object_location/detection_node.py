@@ -38,8 +38,10 @@ class DetectionNode(Node):
 
     # YOLO
     YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
-    DEFAULT_YOLO_MODEL_PATH = YOLO_MODEL_LIST[2]  # Use yolov8n.pt for nano model
-    DEFAULT_CONFIDENCE_THRESHOLD = 0.7
+    DEFAULT_YOLO_MODEL_PATH = YOLO_MODEL_LIST[1]  # Use yolov8n.pt for nano model
+    DEFAULT_CONFIDENCE_THRESHOLD = 0.8
+    DEFAULT_WANTED_LIST = []
+    DEFAULT_REJECT_LIST = ['person']
 
     #OpenCV
     DEFAULT_IMAGE_ENCODING = 'passthrough'#'bgr8'  # OpenCV uses BGR format
@@ -74,7 +76,8 @@ class DetectionNode(Node):
         self.__annotated_image = None   #Stores the image with boxes and identifiers
         self.__detection_threshold = self.DEFAULT_CONFIDENCE_THRESHOLD   # Threshold for detecting items
         self.__detected_list = []   #Stores a list of detected items
-        self.__wanted_list = [] # Update this list to filter detections
+        self.__wanted_list = self.DEFAULT_WANTED_LIST # Update this list to filter detections
+        self.__reject_list = self.DEFAULT_REJECT_LIST
         self.__still_in_function = False
 
         self.__load_parameters()    #Load external parameters
@@ -228,6 +231,10 @@ class DetectionNode(Node):
         
         # If there's a list of items to look for then filter by list
         if len(self.__wanted_list) > 0 and self.__model.names[int(box.cls)] not in self.__wanted_list:
+            return False
+        
+        # Check the reject list:
+        if len(self.__reject_list) > 0 and self.__model.names[int(box.cls)] in self.__reject_list:
             return False
         
         return True
