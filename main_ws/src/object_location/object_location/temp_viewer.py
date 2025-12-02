@@ -71,10 +71,10 @@ class TempViewer(Node):
 
         self.__cv_bridge = CvBridge()
         cv2.namedWindow("Temp Viewer", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("Overlay Map", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("Base Map", cv2.WINDOW_NORMAL)
+        # cv2.namedWindow("Overlay Map", cv2.WINDOW_NORMAL)
+        # cv2.namedWindow("Base Map", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Detections", cv2.WINDOW_NORMAL)
-        cv2.namedWindow("Path Viewer", cv2.WINDOW_NORMAL)
+        # cv2.namedWindow("Path Viewer", cv2.WINDOW_NORMAL)
 
     #----------------------------------------------------------------------------------
     def path_callback(self, msg):
@@ -87,7 +87,9 @@ class TempViewer(Node):
             'info':msg.info,
             'data':np.array(msg.data, dtype=np.uint16).reshape((height, width)).T
         }
-
+        
+        return
+    
         # self.__update_combined_view()
 
         # Create grayscale image
