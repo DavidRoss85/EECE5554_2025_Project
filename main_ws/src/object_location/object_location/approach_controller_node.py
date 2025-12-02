@@ -23,10 +23,10 @@ class ApproachControllerNode(Node):
     #     depth=MAX_MSG
     # )
 
-    DEFAULT_TARGET_CLASS = 'person'
-    DEFAULT_TARGET_DISTANCE = 0.0  # meters
+    DEFAULT_TARGET_CLASS = 'bottle'
+    DEFAULT_TARGET_DISTANCE = 1  # meters
     DEFAULT_MAX_LINEAR_SPEED = .7  # m/s
-    DEFAULT_MAX_ANGULAR_SPEED = .7  # rad/s
+    DEFAULT_MAX_ANGULAR_SPEED = .4  # rad/s
     DEFAULT_KP_ANGULAR = 0.004
     DEFAULT_KP_LINEAR = 0.5
     DEFAULT_IMAGE_WIDTH = 320
@@ -165,7 +165,7 @@ class ApproachControllerNode(Node):
         self.item_details.relative_yaw = np.deg2rad(self.item_details.relative_yaw) if self.item_details.relative_yaw is not None else 0
         self.x_vel = min(self.item_details.distance, self.max_linear_speed)
         self.z_vel = (self.item_details.relative_yaw) *-1
-        self.travel_distance = max(self.target_distance, (self.item_details.distance - self.target_distance))
+        self.travel_distance = (self.item_details.distance - self.target_distance)
 
     #-----------------------------------------------------------------------------------------------
     def calculate_movement_time(self, distance,velocity):
@@ -196,10 +196,12 @@ class ApproachControllerNode(Node):
         if self.countdown_timer_forward > 0:
             self.countdown_timer_forward -= self.__timer_interval
             self.approach_target(self.item_details, move_msg)
+            print (f'Moving Forward: {self.countdown_timer_forward:.2f}s remaining')
 
         if self.countdown_timer_turn > 0:
             self.countdown_timer_turn -= self.__timer_interval
-            self.face_target(self.item_location,move_msg)
+            self.face_target(self.item_details,move_msg)
+            print (f'Turning: {self.countdown_timer_turn:.2f}s remaining')
             
         self.cmd_vel_pub.publish(move_msg)
 

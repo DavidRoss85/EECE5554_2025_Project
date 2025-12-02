@@ -38,8 +38,8 @@ class DetectionNode(Node):
 
     # YOLO
     YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
-    DEFAULT_YOLO_MODEL_PATH = YOLO_MODEL_LIST[1]  # Use yolov8n.pt for nano model
-    DEFAULT_CONFIDENCE_THRESHOLD = 0.8
+    DEFAULT_YOLO_MODEL_PATH = YOLO_MODEL_LIST[2]  # Use yolov8n.pt for nano model
+    DEFAULT_CONFIDENCE_THRESHOLD = 0.7
 
     #OpenCV
     DEFAULT_IMAGE_ENCODING = 'passthrough'#'bgr8'  # OpenCV uses BGR format
