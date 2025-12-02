@@ -5,6 +5,8 @@
 import rclpy
 from rclpy.node import Node
 from tf2_ros import Buffer, TransformListener
+from builtin_interfaces.msg import Time
+from rclpy.clock import Clock
 from message_filters import ApproximateTimeSynchronizer, Subscriber #pip3 install message-filters
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TransformStamped
@@ -111,6 +113,7 @@ class RoboSyncNode(Node):
         self.__get_robot_pose()
 
         sync_msg = RSync()
+        sync_msg.header.stamp = Clock().now().to_msg()              
         sync_msg.rgb_image = self.__rgb_image
         sync_msg.depth_image = self.__depth_image
 
