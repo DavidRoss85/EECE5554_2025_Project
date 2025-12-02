@@ -26,6 +26,8 @@ class RoboSyncNode(Node):
     DEFAULT_PUBLISH_TOPIC = '/sync/robot/state'
     MAX_MSG = 10
     DEFAULT_SLOP = 0.1
+    DEFAULT_SIMULATE_FRAME_LOSS = 5 #frames
+    DEFAULT_SIMULATE_LAG_TIME = 1   # seconds
 
 
     def __init__(self):
@@ -40,8 +42,17 @@ class RoboSyncNode(Node):
         self.__publish_topic = self.DEFAULT_PUBLISH_TOPIC
         self.__max_msg = self.MAX_MSG
         self.__slop = self.DEFAULT_SLOP
+        self.__simulate_frame_loss = self.DEFAULT_SIMULATE_FRAME_LOSS
+        self.__simulated_lag_time = self.DEFAULT_SIMULATE_LAG_TIME
         
         self.__load_parameters()
+
+        self.__frame_counter = 0
+        self.__msg_queue = []
+        self.__lag_timer = self.create_timer(
+            self.__simulated_lag_time,
+            self.__publish_late_message
+        )
         try:
             # Subscribers
             self.__image_sub = Subscriber(self, Image, self.__image_topic)
@@ -86,6 +97,15 @@ class RoboSyncNode(Node):
         pass
     #----------------------------------------------------------------------------------
     def __sync_callback(self, image_msg, depth_msg):
+        
+        # Simulates Frame loss by skipping messages
+        self.__frame_counter += 1
+        if self.__frame_counter <= self.__simulate_frame_loss:
+            return
+        else:
+            self.__frame_counter = 0
+        
+        # Get images and robot pose
         self.__rgb_image = image_msg
         self.__depth_image = depth_msg
         self.__get_robot_pose()
@@ -98,8 +118,16 @@ class RoboSyncNode(Node):
             sync_msg.robot_pose = self.__robot_pose
 
         # When perfected, should publish only when all three messages are available
-        self.__pub.publish(sync_msg)
-        #self.get_logger().info('Published synchronized message.')
+        if self.__simulated_lag_time <= 0:
+            self.__pub.publish(sync_msg)
+            #self.get_logger().info('Published synchronized message.')
+        else:
+            self.__msg_queue.append(sync_msg)
+    #----------------------------------------------------------------------------------
+    def __publish_late_message(self):
+        # Simulates a delayed message
+        if len(self.__msg_queue) > 0:
+            self.__pub.publish(self.__msg_queue.pop(0))
 
     #----------------------------------------------------------------------------------
     def __get_robot_pose(self):
