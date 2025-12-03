@@ -48,3 +48,7 @@ ros-jazzy-turtlebot4-node
 sudo apt install ros-jazzy-teleop-twist-keyboard
 # To run teleop keyboard with stamped messages:
 ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p stamped:=true
+
+#---------------------------------------------------------------
+#Install ROS Bridge for web dashboard:
+sudo apt install ros-jazzy-rosbridge-server
