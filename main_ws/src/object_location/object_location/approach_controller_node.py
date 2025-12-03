@@ -7,6 +7,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 from geometry_msgs.msg import TwistStamped
+from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import numpy as np
@@ -22,7 +23,8 @@ class ApproachControllerNode(Node):
     #     durability=QoSDurabilityPolicy.VOLATILE,
     #     depth=MAX_MSG
     # )
-
+    DEFAULT_MISSION_TOPIC = '/mission/state'
+    DEFAULT_STATUS_TOPIC = '/visual_servo/status'
     DEFAULT_TARGET_CLASS = 'bottle'
     DEFAULT_TARGET_DISTANCE = 0.4  # meters
     DEFAULT_MAX_LINEAR_SPEED = .7  # m/s
@@ -32,8 +34,17 @@ class ApproachControllerNode(Node):
     DEFAULT_IMAGE_WIDTH = 320
     DEFAULT_DISTANCE_TOLERANCE = 0.05  # meters
     DEFAULT_ANGULAR_TOLERANCE = 1  # degree
-    DEFAULT_ENABLED = True
+    DEFAULT_ENABLED = False
     DEFAULT_TIMEOUT = 2.0  # seconds
+
+    APPROACH_MSG = 'APPROACHING'
+    IDLE_MSG = 'IDLE'
+    DETECTING_MSG = 'DETECTING'
+    PICKING_MSG = 'PICKING'
+    DONE_MSG = 'DONE'
+
+    ALIGNED_STATUS = 'aligned'
+    NOT_ALIGNED_STATUS = 'aligning'
 
     def __init__(self):
         super().__init__('approach_controller_node')
@@ -52,6 +63,8 @@ class ApproachControllerNode(Node):
         self.declare_parameter('timeout', 2.0)
         
         self.__qos = self.DEFAULT_QOS
+        self.__mission_topic = self.DEFAULT_MISSION_TOPIC
+        self.__status_topic = self.DEFAULT_STATUS_TOPIC 
 
         self.target_class = self.DEFAULT_TARGET_CLASS
         
@@ -89,17 +102,35 @@ class ApproachControllerNode(Node):
         self.z_vel = 0.1
         
         # Subscribers
-        self.detection_sub = self.create_subscription(
+        self.__detection_sub = self.create_subscription(
             RSyncLocationList,
             '/objects/locations',
             self.detection_callback,
             self.__qos
         )
+
+        self.__mission_sub = self.create_subscription(
+            String,
+            self.__mission_topic,
+            self.__mission_callback,
+            self.__qos
+        )
+
         
 
         
         # Publisher
-        self.cmd_vel_pub = self.create_publisher(TwistStamped, '/cmd_vel', 10)
+        self.__cmd_vel_pub = self.create_publisher(
+            TwistStamped,
+            '/cmd_vel', 
+            self.__qos
+        )
+
+        self.__status_pub = self.create_publisher(
+            String,
+            self.__status_topic,
+            self.__qos
+        )
         
         # Control loop
         self.control_timer = self.create_timer(self.__timer_interval, self.control_loop)
@@ -110,7 +141,35 @@ class ApproachControllerNode(Node):
         self.get_logger().info('='*60)
 
     #-----------------------------------------------------------------------------------------------
+    def __mission_callback(self, msg:String):
+        """ Handle mission state messages to enable/disable approach controller"""
+        if msg.data == self.DETECTING_MSG:
+            self.enabled = False
+            self.stop_robot()
+            self.get_logger().info('Approach Controller Disabled for DETECTING')
+        elif msg.data == self.PICKING_MSG:
+            self.enabled = False
+            self.stop_robot()
+            self.get_logger().info('Approach Controller Disabled for PICKING')
+        elif msg.data == self.DONE_MSG:
+            self.enabled = False
+            self.stop_robot()
+            self.get_logger().info('Approach Controller Disabled for DONE')
+        elif msg.data == self.IDLE_MSG:
+            self.enabled = False
+            self.stop_robot()
+            self.get_logger().info('Approach Controller Disabled')
+        elif msg.data == self.APPROACH_MSG:
+            self.enabled = True
+            self.target_reached = False
+            self.get_logger().info('Approach Controller Enabled')
+
+    #-----------------------------------------------------------------------------------------------
     def detection_callback(self, msg:RSyncDetectionList):
+        """ Process detection messages to approach target object """
+        if self.enabled == False:
+            return
+        
         try:
             target_found = False
 
@@ -159,6 +218,19 @@ class ApproachControllerNode(Node):
         except Exception as e:
             self.get_logger().error(f'Detection error: {str(e)}')
 
+
+    #-----------------------------------------------------------------------------------------------
+    def set_target_reached(self):
+        status_msg = String()
+        status_msg.data = self.ALIGNED_STATUS
+        self.__status_pub.publish(status_msg)
+
+        self.get_logger().info(f'Target {self.target_class} reached at distance {self.item_details.distance:.2f}m')
+
+        self.enabled = False
+        self.approaching = False
+        self.target_reached = True
+        self.stop_robot()
     #-----------------------------------------------------------------------------------------------
     def update_item_details(self, item):
         self.item_details = item
@@ -183,7 +255,7 @@ class ApproachControllerNode(Node):
     #-----------------------------------------------------------------------------------------------
     def stop_robot(self):
         twist = TwistStamped()
-        self.cmd_vel_pub.publish(twist)
+        self.__cmd_vel_pub.publish(twist)
 
 
     #-----------------------------------------------------------------------------------------------
@@ -202,8 +274,12 @@ class ApproachControllerNode(Node):
             self.countdown_timer_turn -= self.__timer_interval
             self.face_target(self.item_details,move_msg)
             print (f'Turning: {self.countdown_timer_turn:.2f}s remaining')
-            
-        self.cmd_vel_pub.publish(move_msg)
+
+        if self.approaching:
+            if self.countdown_timer_forward <= 0 and self.countdown_timer_turn <= 0:
+                self.set_target_reached()
+            else:    
+                self.__cmd_vel_pub.publish(move_msg)
 
 #***************************************************************************************************
 #***************************************************************************************************
