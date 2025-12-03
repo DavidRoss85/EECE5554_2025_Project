@@ -1,0 +1,104 @@
+# PincherX100 Robot Configuration
+
+# Robot link dimensions (in meters)
+robot_dimensions:
+  L1: 0.0445  # Base to shoulder height
+  L2: 0.1010  # Shoulder to elbow length
+  L3: 0.1010  # Elbow to wrist length
+  L4: 0.1090  # Wrist to TCP (end-effector) length
+  Lm: 0.0315  # Offset for shoulder mechanism
+
+# Servo IDs
+servo_ids:
+  base: 1
+  shoulder: 2
+  elbow: 3
+  wrist: 4
+  gripper: 5
+
+# Servo position limits (0-4095)
+position_limits:
+  base: [512, 3584]
+  shoulder: [1024, 3072]
+  elbow: [512, 3584]
+  wrist: [512, 3584]
+  gripper: [1648, 2448]
+
+# Movement parameters
+movement:
+  profile_velocity: 150
+  profile_acceleration: 80
+  degrees_per_step: 6
+
+# Gripper positions (0-4095)
+gripper:
+  open_position: 2448
+  closed_position: 1648
+
+# Workspace constraints (in robot base frame, meters)
+workspace:
+  # Base rotation limit: ±90 degrees from center
+  base_rotation_limit_degrees: 90
+  
+# Object dimensions (in meters)
+objects:
+  orange_bottle:
+    width: 0.053
+    length: 0.053
+    height: 0.185
+    cap_radius: 0.025
+    cap_color: "green"
+    grip_height_ratio: 0.5  # Grip at middle of bottle
+    
+  yogurt_bottle:
+    radius: 0.026
+    height: 0.155
+    cap_radius: 0.020
+    cap_color: "pink"
+    grip_height_ratio: 0.5  # Grip at middle of bottle
+
+# Pick and place parameters
+pick_place:
+  approach_height: 0.05  # Height above object before descending (meters)
+  grip_height: 0.0  # Height offset for gripping (relative to object center)
+  lift_height: 0.10  # Height to lift after grasping (meters)
+  drop_height: 0.05  # Height above drop location (meters)
+  
+# Object detection configuration
+detection:
+  # For top-down camera views, cap_detector is more reliable than YOLO
+  use_cap_detector: true  # Use color-based cap detection for top-down views (recommended)
+  yolo_model: "yolov8n.pt"  # Options: yolov8n.pt (fastest), yolov8s.pt (better accuracy), yolov8m.pt, yolov8l.pt, yolov8x.pt
+  confidence_threshold: 0.3  # Lower = more detections but more false positives
+
+# Camera configuration
+camera:
+  # Camera position relative to robot base center (in meters)
+  # Base center is (0, 0, 0) at bottom of base motor
+  # Forward direction is +Y (base at 90°, servo 2048)
+  # Left is -X (base at 0°, servo 3093), Right is +X (base at 180°, servo 999)
+  position:
+    x: 0.0  # Camera centered on base in X direction (0mm)
+    y: 0.21  # 210mm forward from base center
+    z: 0.51  # 510mm above platform
+  
+  # Camera orientation (top-down view, pointing down)
+  orientation:
+    roll: 0.0
+    pitch: -1.5708  # -90 degrees (pointing down)
+    yaw: 0.0
+  
+  # Image dimensions
+  image:
+    width: 1280  # pixels (x-axis)
+    height: 720  # pixels (y-axis)
+  
+  # Camera intrinsic parameters (loaded from calibration)
+  calibration_file: "../camera_calibration/camera_calibration.npz"
+  
+# Checkerboard pattern for drop location
+checkerboard:
+  pattern_size: [6, 7]  # Inner corners (width x height)
+  square_size: 0.024  # 24mm squares (large pattern for hand-eye calibration)
+  pattern_file: "../camera_calibration/checkerboard_6x7_large_US_letter.svg"
+

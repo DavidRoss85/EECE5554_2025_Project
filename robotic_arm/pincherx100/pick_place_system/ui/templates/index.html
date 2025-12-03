@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PincherX100 Pick and Place System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .main-content {
+            display: flex;
+            gap: 20px;
+        }
+        .video-section {
+            flex: 2;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .data-section {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .video-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .data-panel {
+            margin-bottom: 20px;
+        }
+        .data-panel h2 {
+            margin-top: 0;
+            color: #555;
+            font-size: 18px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+        }
+        .data-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .data-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .data-value {
+            color: #333;
+            margin-left: 10px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-online {
+            background-color: #4CAF50;
+        }
+        .status-offline {
+            background-color: #f44336;
+        }
+        .object-item {
+            padding: 10px;
+            margin: 8px 0;
+            background: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .object-type {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        .coordinates {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PincherX100 Pick and Place System</h1>
+        
+        <div class="main-content">
+            <div class="video-section">
+                <h2>Camera Feed</h2>
+                <div class="video-container">
+                    <img src="{{ url_for('video_feed') }}" alt="Camera Feed">
+                </div>
+            </div>
+            
+            <div class="data-section">
+                <div class="data-panel">
+                    <h2>Arm Status</h2>
+                    <div class="data-item">
+                        <span class="status-indicator" id="arm-status-indicator"></span>
+                        <span class="data-label">Status:</span>
+                        <span class="data-value" id="arm-status-text">Unknown</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Joint Positions:</span>
+                        <span class="data-value" id="joint-positions">-</span>
+                    </div>
+                </div>
+                
+                <div class="data-panel">
+                    <h2>Detected Objects</h2>
+                    <div id="objects-list">
+                        <div class="data-item">No objects detected</div>
+                    </div>
+                </div>
+                
+                <div class="data-panel">
+                    <h2>Drop Location</h2>
+                    <div id="drop-location">
+                        <div class="data-item">Not detected</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function updateData() {
+            fetch('/api/detections')
+                .then(response => response.json())
+                .then(data => {
+                    // Update arm status
+                    const armStatus = data.arm_status;
+                    const indicator = document.getElementById('arm-status-indicator');
+                    const statusText = document.getElementById('arm-status-text');
+                    
+                    if (armStatus.initialized) {
+                        indicator.className = 'status-indicator status-online';
+                        statusText.textContent = 'Online';
+                        
+                        if (armStatus.joint_positions) {
+                            document.getElementById('joint-positions').textContent = 
+                                armStatus.joint_positions.join(', ');
+                        } else {
+                            document.getElementById('joint-positions').textContent = 'Reading...';
+                        }
+                    } else {
+                        indicator.className = 'status-indicator status-offline';
+                        statusText.textContent = 'Offline';
+                        document.getElementById('joint-positions').textContent = '-';
+                    }
+                    
+                    // Update objects
+                    const objectsList = document.getElementById('objects-list');
+                    if (data.objects && data.objects.length > 0) {
+                        objectsList.innerHTML = data.objects.map(obj => `
+                            <div class="object-item">
+                                <div class="object-type">${obj.type}</div>
+                                <div class="coordinates">
+                                    Pixel: (${obj.pixel[0].toFixed(1)}, ${obj.pixel[1].toFixed(1)})<br>
+                                    Base: (${obj.base[0].toFixed(3)}, ${obj.base[1].toFixed(3)}, ${obj.base[2].toFixed(3)})<br>
+                                    Confidence: ${(obj.confidence * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        objectsList.innerHTML = '<div class="data-item">No objects detected</div>';
+                    }
+                    
+                    // Update drop location
+                    const dropLocation = document.getElementById('drop-location');
+                    if (data.drop_location) {
+                        dropLocation.innerHTML = `
+                            <div class="data-item">
+                                <div class="data-label">Pixel:</div>
+                                <div class="data-value">(${data.drop_location.pixel[0].toFixed(1)}, ${data.drop_location.pixel[1].toFixed(1)})</div>
+                                <div class="data-label" style="margin-top: 5px;">Base:</div>
+                                <div class="data-value">(${data.drop_location.base[0].toFixed(3)}, ${data.drop_location.base[1].toFixed(3)}, ${data.drop_location.base[2].toFixed(3)})</div>
+                            </div>
+                        `;
+                    } else {
+                        dropLocation.innerHTML = '<div class="data-item">Not detected</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+        
+        // Update data every 500ms
+        setInterval(updateData, 500);
+        updateData(); // Initial update
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,100 @@
+(venv) jx@rbp5:~/Dev/Robotics/pincherx100/pick_place_system $ python scripts/arm_cli.py pick orange --debug
+Loaded servo configuration from /home/jx/Dev/Robotics/pincherx100/pick_place_system/scripts/../scripts/../../low-level_control/servo_config.yaml
+Loaded camera calibration from /home/jx/Dev/Robotics/pincherx100/pick_place_system/scripts/../../camera_calibration/camera_calibration.npz
+  Image size: (np.int64(1280), np.int64(720))
+  Camera matrix:
+[[     1680.8           0      599.85]
+ [          0      1681.7      326.36]
+ [          0           0           1]]
+Loaded camera position from config: (0.0, 0.21, 0.51)
+Loaded hand-eye calibration from /home/jx/Dev/Robotics/pincherx100/pick_place_system/scripts/../calibration/hand_eye_calibration.json
+Object detector initialized with model: yolov8n.pt
+  Confidence threshold: 0.3
+Cap detector initialized (top-down view)
+  Min area: 50, Max area: 50000 (accounts for bottle height/perspective)
+  Circularity threshold: 0.25 (very lenient for partial circles)
+  Min color ratio: 0.05
+  Min mask ratio: 0.3 (for partial circle detection)
+  Max aspect ratio: 3.0
+  Camera height: 50.0cm, Bottle heights: Orange=18.5cm, Yogurt=15.5cm
+Cap detector initialized for top-down view
+Checkerboard detector initialized
+  Pattern: 6x7 corners
+  Square size: 24.0mm
+Pick and Place CLI initialized
+Initializing arm...
+Initializing connection to /dev/ttyUSB0 at 1000000 baud...
+Opened port /dev/ttyUSB0
+Set baudrate to 1000000
+
+Configuring servos for MAXIMUM POWER...
+  Servo ID 1: MAX POWER configured and enabled
+  Servo ID 2: MAX POWER configured and enabled
+  Servo ID 3: MAX POWER configured and enabled
+  Servo ID 4: MAX POWER configured and enabled
+  Servo ID 5: MAX POWER configured and enabled
+
+============================================================
+MAXIMUM POWER MODE ENABLED - GENTLE MOVEMENT
+============================================================
+PWM Limit: 885/885 (100% voltage)
+Current Limit: 1193/1193 (2.69A max)
+
+Profile Settings (Higher = Slower but MORE Torque):
+  Global Velocity: 1000 (gentle movement)
+  Global Acceleration: 32000 (smooth)
+  Shoulder Velocity: 1000 (extra torque)
+  Shoulder Acceleration: 32000 (smoother)
+
+Per-Joint Step Sizes:
+  Base: 2° per press
+  Shoulder: 8° per press (needs larger steps)
+  Elbow: 6° per press
+  Wrist: 3° per press
+
+Shoulder optimized for maximum lifting power!
+============================================================
+Detecting orange_bottle...
+  Total detections: 1
+    Detection 0: orange_bottle (confidence: 0.60, color_match: True, center: [704, 288])
+  Found orange_bottle at pixel: [704, 288]
+  Confidence: 0.60
+  Color match: True
+qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in "/home/jx/Dev/Robotics/pincherx100/pick_place_system/venv/lib/python3.13/site-packages/cv2/qt/plugins"
+    [DEBUG] Pixel to Camera 3D:
+      Pixel: (704.0, 288.0)
+      Undistorted: (704.0, 288.0)
+      Normalized: x_norm=0.0620, y_norm=-0.0228
+      Z distance: 0.3250m
+      Camera 3D: X_cam=0.0201, Y_cam=-0.0074, Z_cam=0.3250
+  Cap detected at pixel: (704.0, 288.0)
+  Bottle base position in base frame: (0.020, -0.007, 0.000)
+  Bottle height: 18.5cm
+
+============================================================
+PICK OPERATION
+============================================================
+Object position (bottle base): [    0.02014  -0.0074174           0]
+Grip height: 9.2cm above platform
+
+Step 1: Moving to approach position: (0.020, -0.007, 0.143)
+    [DEBUG] Target Position: X=0.0201, Y=-0.0074, Z=0.1425
+    [DEBUG] IK Input Position: X=0.0201, Y=-0.0074, Z=0.1425
+    [DEBUG] Base Rotation Calculation:
+      atan2(Y=-0.0074, X=0.0201) = -0.3529 rad = -20.2°
+    [DEBUG] Joint Angles (rad): q1=-0.3529, q2=0.4848, q3=1.6440, q4=-3.6996
+    [DEBUG] Joint Angles (deg): q1=-20.2°, q2=27.8°, q3=94.2°, q4=-212.0°
+    [DEBUG] Servo Position Calculation:
+      q1 (normalized) = -0.3529 rad = -20.2°
+      Base servo position = 763 (expected: 999=0°, 2048=90°, 3093=180°)
+    [DEBUG] Servo Positions: base=763, shoulder=2364, elbow=3119, wrist=-363
+
+Servo 2 ERROR: OVERLOAD
+   Error count: 1. Press 'X' to clear errors.
+Error moving servo 2
+  ✗ Failed to move to approach position
+Failed to pick orange_bottle
+
+
+Shutting down...
+Arm controller shutdown complete.
