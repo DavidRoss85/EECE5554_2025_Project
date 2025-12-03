@@ -26,6 +26,7 @@ from object_location_interfaces.msg import (
 import cv2      #pip3 install opencv-python
 from cv_bridge import CvBridge
 
+from .helpers import USING_GAZEBO
 
 class DistanceNode(Node):
     """
@@ -35,6 +36,8 @@ class DistanceNode(Node):
     Output is published as an RSyncLocationList message containing one
     ItemLocation entry per detected object.
     """
+
+    DEFAULT_USING_GAZEBO = USING_GAZEBO
 
     # Default ROS topic names and settings
     DEFAULT_PUBLISH_TOPIC = '/objects/locations'
@@ -47,7 +50,6 @@ class DistanceNode(Node):
     DEFAULT_DEPTH_MAX = 65000
     METER_DEPTH_FACTOR = 1
     MM_DEPTH_FACTOR = 1000
-    DEFAULT_USING_GAZEBO = True
     DEFAULT_SHOW_DEPTH = False
 
     # Camera intrinsics (unused right now, but available)

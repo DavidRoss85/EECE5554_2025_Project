@@ -5,8 +5,6 @@
 import rclpy
 from rclpy.node import Node
 from tf2_ros import Buffer, TransformListener
-from builtin_interfaces.msg import Time
-from rclpy.clock import Clock
 from message_filters import ApproximateTimeSynchronizer, Subscriber #pip3 install message-filters
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TransformStamped
@@ -15,11 +13,12 @@ from object_location_interfaces.msg import RoboSync as RSync
 #Testing:
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
+from .helpers import USING_GAZEBO
 
 class RoboSyncNode(Node):
 
     #Class Constants
-    DEFAULT_USING_GAZEBO = True
+    DEFAULT_USING_GAZEBO = USING_GAZEBO
     DEFAULT_IMAGE_TOPIC = '/oakd/rgb/preview/image_raw'
     DEFAULT_DEPTH_TOPIC = '/oakd/stereo/image_raw'
     DEFAULT_DEPTH_TOPIC_GAZEBO = '/oakd/rgb/preview/depth'
@@ -28,8 +27,8 @@ class RoboSyncNode(Node):
     DEFAULT_PUBLISH_TOPIC = '/sync/robot/state'
     MAX_MSG = 10
     DEFAULT_SLOP = 0.1
-    DEFAULT_SIMULATE_FRAME_LOSS = 20 #frames
-    DEFAULT_SIMULATE_LAG_TIME = .5   # seconds
+    DEFAULT_SIMULATE_FRAME_LOSS = 0 #frames
+    DEFAULT_SIMULATE_LAG_TIME = 0   # seconds
 
 
     def __init__(self):
@@ -113,7 +112,6 @@ class RoboSyncNode(Node):
         self.__get_robot_pose()
 
         sync_msg = RSync()
-        sync_msg.header.stamp = Clock().now().to_msg()              
         sync_msg.rgb_image = self.__rgb_image
         sync_msg.depth_image = self.__depth_image
 
@@ -131,6 +129,7 @@ class RoboSyncNode(Node):
         # Simulates a delayed message
         if len(self.__msg_queue) > 0:
             self.__pub.publish(self.__msg_queue.pop(0))
+            self.get_logger().info('Published delayed synchronized message.')
 
     #----------------------------------------------------------------------------------
     def __get_robot_pose(self):

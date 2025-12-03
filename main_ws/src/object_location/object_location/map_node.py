@@ -43,7 +43,7 @@ class MapGenerator(Node):
 
     DEFAULT_OBSTACLE_MARKER_VALUE = 101  # Value to mark detected objects on overlay grid
     DEFAULT_ROBOT_MARKER_VALUE = 99  # Value to mark robot path on navigation grid
-    DEFAULT_INFLATION_METERS = 0.01  # Meters to inflate detected objects on overlay
+    DEFAULT_INFLATION_METERS = 1.0  # Meters to inflate detected objects on overlay
     DEFAULT_ROBOT_POSE_UPDATE_INCREMENT = 0.5
 
     #----------------------------------------------------------------------------------

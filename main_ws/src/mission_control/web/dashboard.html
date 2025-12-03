@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TurtleBot 4 Mission Control</title>
+    <script src="roslib.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        
+        .status-section {
+            margin-bottom: 30px;
+        }
+        
+        .status-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .status-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .connection-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .connected {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .disconnected {
+            background: #f44336;
+            color: white;
+        }
+        
+        .commands-section {
+            margin-top: 30px;
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .emergency-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .emergency-controls button {
+            flex: 1;
+        }
+        
+        .info-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .log-section {
+            margin-top: 30px;
+        }
+        
+        .log-box {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 TurtleBot 4 Mission Control</h1>
+        <p class="subtitle">Quaternions Team - EECE 5554 Final Project</p>
+        
+        <div class="status-section">
+            <div class="status-box">
+                <div class="status-label">Connection Status</div>
+                <div class="status-value">
+                    <span id="connection" class="connection-status disconnected">Disconnected</span>
+                </div>
+            </div>
+            
+            <div class="status-box">
+                <div class="status-label">Robot State</div>
+                <div class="status-value" id="robot-status">IDLE: Ready for commands</div>
+            </div>
+            
+            <div class="status-box">
+                <div class="status-label">Distance to Target</div>
+                <div class="status-value" id="distance">-- m</div>
+            </div>
+        </div>
+        
+        <div class="commands-section">
+            <h2>Mission Commands</h2>
+            <div class="button-grid">
+                <button class="btn-primary" onclick="sendCommand('pick_bottle')">
+                    🍾 Pick Bottle
+                </button>
+                <button class="btn-primary" onclick="sendCommand('pick_cup')">
+                    ☕ Pick Cup
+                </button>
+                <button class="btn-primary" onclick="sendCommand('pick_mouse')">
+                    🖊️ Pick Mouse
+                </button>
+            </div>
+            
+            <div class="emergency-controls">
+                <button class="btn-danger" onclick="sendCommand('stop')">
+                    ⛔ EMERGENCY STOP
+                </button>
+                <button class="btn-secondary" onclick="sendCommand('reset')">
+                    🔄 Reset
+                </button>
+                <button class="btn-secondary" onclick="sendCommand('home')">
+                    🏠 Return Home
+                </button>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <strong>Instructions:</strong> Click a mission button to start object retrieval. 
+            The robot will detect, approach, and pick up the selected object. 
+            Use EMERGENCY STOP to halt all operations immediately.
+        </div>
+        
+        <div class="log-section">
+            <h2>Command Log</h2>
+            <div class="log-box" id="log">
+                <div class="log-entry">[System] Initializing...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ROS Connection
+        var ros = new ROSLIB.Ros({
+            url : 'ws://localhost:9090'
+        });
+        
+        // Connection handlers
+        ros.on('connection', function() {
+            updateConnectionStatus(true);
+            addLog('Connected to ROS');
+        });
+        
+        ros.on('error', function(error) {
+            updateConnectionStatus(false);
+            addLog('Error: ' + error, 'error');
+        });
+        
+        ros.on('close', function() {
+            updateConnectionStatus(false);
+            addLog('Connection closed');
+        });
+        
+        // Publishers
+        var cmdPublisher = new ROSLIB.Topic({
+            ros : ros,
+            name : '/mission/command',
+            messageType : 'std_msgs/String'
+        });
+        
+        // Subscribers
+        var statusListener = new ROSLIB.Topic({
+            ros : ros,
+            name : '/mission/status',
+            messageType : 'std_msgs/String'
+        });
+        
+        statusListener.subscribe(function(message) {
+            document.getElementById('robot-status').innerText = message.data;
+        });
+        
+        var distanceListener = new ROSLIB.Topic({
+            ros : ros,
+            name : '/object/distance',
+            messageType : 'std_msgs/Float32'
+        });
+        
+        distanceListener.subscribe(function(message) {
+            var dist = message.data;
+            if (dist < 999) {
+                document.getElementById('distance').innerText = dist.toFixed(2) + ' m';
+            } else {
+                document.getElementById('distance').innerText = '-- m';
+            }
+        });
+        
+        // Functions
+        function sendCommand(cmd) {
+            var message = new ROSLIB.Message({
+                data : cmd
+            });
+            cmdPublisher.publish(message);
+            addLog('Command sent: ' + cmd);
+        }
+        
+        function updateConnectionStatus(connected) {
+            var statusElem = document.getElementById('connection');
+            if (connected) {
+                statusElem.innerText = 'Connected ✓';
+                statusElem.className = 'connection-status connected';
+            } else {
+                statusElem.innerText = 'Disconnected ✗';
+                statusElem.className = 'connection-status disconnected';
+            }
+        }
+        
+        function addLog(message, type = 'info') {
+            var logBox = document.getElementById('log');
+            var timestamp = new Date().toLocaleTimeString();
+            var entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            var color = type === 'error' ? '#ff6b6b' : '#00ff00';
+            entry.innerHTML = `<span style="color: ${color}">[${timestamp}] ${message}</span>`;
+            
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+            
+            // Keep only last 20 entries
+            while (logBox.children.length > 20) {
+                logBox.removeChild(logBox.firstChild);
+            }
+        }
+        
+        // Initialize
+        addLog('Dashboard loaded');
+        addLog('Attempting to connect to ROS...');
+    </script>
+</body>
+</html>

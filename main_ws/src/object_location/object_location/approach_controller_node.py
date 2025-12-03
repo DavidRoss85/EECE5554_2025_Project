@@ -23,8 +23,8 @@ class ApproachControllerNode(Node):
     #     depth=MAX_MSG
     # )
 
-    DEFAULT_TARGET_CLASS = 'person'
-    DEFAULT_TARGET_DISTANCE = 1  # meters
+    DEFAULT_TARGET_CLASS = 'bottle'
+    DEFAULT_TARGET_DISTANCE = 0.4  # meters
     DEFAULT_MAX_LINEAR_SPEED = .7  # m/s
     DEFAULT_MAX_ANGULAR_SPEED = .4  # rad/s
     DEFAULT_KP_ANGULAR = 0.004
@@ -164,7 +164,7 @@ class ApproachControllerNode(Node):
         self.item_details = item
         self.item_details.relative_yaw = np.deg2rad(self.item_details.relative_yaw) if self.item_details.relative_yaw is not None else 0
         self.x_vel = min(self.item_details.distance, self.max_linear_speed)
-        self.z_vel = (self.item_details.relative_yaw) *-1
+        self.z_vel = ((self.item_details.relative_yaw) *-1)/2
         self.travel_distance = (self.item_details.distance - self.target_distance)
 
     #-----------------------------------------------------------------------------------------------
