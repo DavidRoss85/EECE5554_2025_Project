@@ -103,20 +103,20 @@ class DepthAssign(Node):
                     # Get box name:
                     item_name = self.__model.names[int(box.cls)]    # Convert item index to name
 
-                    if item_name == 'person':
-                        # print(f"Person: {xc},{yc}")
-                        # # Remember to flip coords for np arrays (x=yc, y=xc)
-                        # print(f"Depth: {self.__depth_map[yc,xc] if self.__depth_map is not None else 0}")
-                        depth_image[yc,xc] = 255
-                        
-                        # Add text with item's name/type to annotated frame
-                        annotated_image =  self.__add_text_to_image(
-                            cv_image,
-                            x = xc,
-                            y = yc,
-                            text = f"{self.__depth_map[yc,xc]:.2f}m away",
-                            bgr = (0,255,0)
-                        )
+                    # if item_name == 'person':
+                    # print(f"Person: {xc},{yc}")
+                    # # Remember to flip coords for np arrays (x=yc, y=xc)
+                    # print(f"Depth: {self.__depth_map[yc,xc] if self.__depth_map is not None else 0}")
+                    depth_image[yc,xc] = 255
+                    
+                    # Add text with item's name/type to annotated frame
+                    annotated_image =  self.__add_text_to_image(
+                        cv_image,
+                        x = xc,
+                        y = yc,
+                        text = f"{self.__depth_map[yc,xc]:.2f}m away",
+                        bgr = (0,255,0)
+                    )
         
 
         
