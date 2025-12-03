@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TurtleBot 4 Mission Control</title>
-    <script src="roslib.min.js"></script>
+    <script src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -208,8 +208,8 @@
                 <button class="btn-primary" onclick="sendCommand('pick_cup')">
                     ☕ Pick Cup
                 </button>
-                <button class="btn-primary" onclick="sendCommand('pick_mouse')">
-                    🖊️ Pick Mouse
+                <button class="btn-primary" onclick="sendCommand('pick_marker')">
+                    🖊️ Pick Marker
                 </button>
             </div>
             
@@ -278,21 +278,60 @@
         
         statusListener.subscribe(function(message) {
             document.getElementById('robot-status').innerText = message.data;
+            
+            // Also log important state changes to command log
+            if (message.data.includes('detected') || 
+                message.data.includes('Aligned') || 
+                message.data.includes('complete') ||
+                message.data.includes('Picking') ||
+                message.data.includes('Timeout')) {
+                addLog('Status: ' + message.data);
+            }
         });
         
+        // Subscribe to David's location topic (objects with 's')
         var distanceListener = new ROSLIB.Topic({
             ros : ros,
-            name : '/object/distance',
-            messageType : 'std_msgs/Float32'
+            name : '/objects/locations',
+            messageType : 'object_location_interfaces/RSyncLocationList'
         });
         
         distanceListener.subscribe(function(message) {
-            var dist = message.data;
-            if (dist < 999) {
-                document.getElementById('distance').innerText = dist.toFixed(2) + ' m';
+            // Extract distance from David's complex message structure
+            // message.locations.location_list is an array of ItemLocation
+            if (message.locations && message.locations.location_list && message.locations.location_list.length > 0) {
+                // Show distance of first detected object
+                var dist = message.locations.location_list[0].distance;
+                if (dist < 999) {
+                    document.getElementById('distance').innerText = dist.toFixed(2) + ' m';
+                } else {
+                    document.getElementById('distance').innerText = '-- m';
+                }
             } else {
                 document.getElementById('distance').innerText = '-- m';
             }
+        });
+        
+        // Subscribe to visual servo status for debugging
+        var servoListener = new ROSLIB.Topic({
+            ros : ros,
+            name : '/visual_servo/status',
+            messageType : 'std_msgs/String'
+        });
+        
+        servoListener.subscribe(function(message) {
+            addLog('Visual Servo: ' + message.data);
+        });
+        
+        // Subscribe to arm status for debugging
+        var armListener = new ROSLIB.Topic({
+            ros : ros,
+            name : '/arm/status',
+            messageType : 'std_msgs/String'
+        });
+        
+        armListener.subscribe(function(message) {
+            addLog('Arm: ' + message.data);
         });
         
         // Functions
