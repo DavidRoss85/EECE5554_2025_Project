@@ -112,6 +112,7 @@ class RoboSyncNode(Node):
         self.__get_robot_pose()
 
         sync_msg = RSync()
+        sync_msg.header.stamp = self.__rgb_image.header.stamp
         sync_msg.rgb_image = self.__rgb_image
         sync_msg.depth_image = self.__depth_image
 
@@ -121,7 +122,7 @@ class RoboSyncNode(Node):
         # When perfected, should publish only when all three messages are available
         if self.__simulated_lag_time <= 0:
             self.__pub.publish(sync_msg)
-            #self.get_logger().info('Published synchronized message.')
+            self.get_logger().info('Published synchronized message.')
         else:
             self.__msg_queue.append(sync_msg)
     #----------------------------------------------------------------------------------

@@ -26,14 +26,14 @@ class ApproachControllerNode(Node):
     DEFAULT_MISSION_TOPIC = '/mission/state'
     DEFAULT_STATUS_TOPIC = '/visual_servo/status'
     DEFAULT_TARGET_CLASS = 'bottle'
-    DEFAULT_TARGET_DISTANCE = 0.4  # meters
+    DEFAULT_TARGET_DISTANCE = 0.1  # meters
     DEFAULT_MAX_LINEAR_SPEED = .7  # m/s
     DEFAULT_MAX_ANGULAR_SPEED = .4  # rad/s
-    DEFAULT_KP_ANGULAR = 0.004
-    DEFAULT_KP_LINEAR = 0.5
+    # DEFAULT_KP_ANGULAR = 0.004
+    # DEFAULT_KP_LINEAR = 0.5
     DEFAULT_IMAGE_WIDTH = 320
     DEFAULT_DISTANCE_TOLERANCE = 0.05  # meters
-    DEFAULT_ANGULAR_TOLERANCE = 1  # degree
+    DEFAULT_ANGULAR_TOLERANCE = .1  # degree
     DEFAULT_ENABLED = False
     DEFAULT_TIMEOUT = 2.0  # seconds
 
@@ -75,8 +75,8 @@ class ApproachControllerNode(Node):
         self.target_distance = self.DEFAULT_TARGET_DISTANCE
         self.max_linear_speed = self.DEFAULT_MAX_LINEAR_SPEED
         self.max_angular_speed = self.DEFAULT_MAX_ANGULAR_SPEED
-        self.kp_angular = self.DEFAULT_KP_ANGULAR
-        self.kp_linear = self.DEFAULT_KP_LINEAR
+        # self.kp_angular = self.DEFAULT_KP_ANGULAR
+        # self.kp_linear = self.DEFAULT_KP_LINEAR
         
         self.image_width = self.DEFAULT_IMAGE_WIDTH
         self.timeout = self.DEFAULT_TIMEOUT
@@ -94,6 +94,8 @@ class ApproachControllerNode(Node):
         self.approaching = False
         self.target_reached = False
         self.travel_distance = 0
+        self.start_moving_time = None
+        self.stop_moving_time = self.get_clock().now()
 
         self.__timer_interval = 0.1  # seconds
         self.countdown_timer_forward = 0
@@ -115,8 +117,6 @@ class ApproachControllerNode(Node):
             self.__mission_callback,
             self.__qos
         )
-
-        
 
         
         # Publisher
@@ -170,6 +170,19 @@ class ApproachControllerNode(Node):
         if self.enabled == False:
             return
         
+        # if self.approaching:
+        #     return
+        
+        
+        message_time = (msg.robo_sync.header.stamp.sec + msg.robo_sync.header.stamp.nanosec*1e-9)
+        stop_time = (self.stop_moving_time.nanoseconds*1e-9) if self.stop_moving_time is not None else float('inf')
+
+        print(f'SStop Moving Time: {stop_time}s\n Stamped Time: {message_time}s')
+        if message_time < stop_time:
+            # Ignore older messages while moving
+            self.get_logger().info('Ignoring detection message while moving')
+            return
+            
         try:
             target_found = False
 
@@ -189,13 +202,15 @@ class ApproachControllerNode(Node):
                     # Calculate forward moving time
                     self.countdown_timer_forward = self.calculate_movement_time(
                         self.travel_distance,
-                        self.x_vel
+                        self.x_vel,
+                        self.distance_tolerance
                     )
 
                     # Calculate turning time (Use absolute values since angular velocities can be negative)
                     self.countdown_timer_turn = self.calculate_movement_time(
                         abs(float(self.item_details.relative_yaw)),
-                        abs(self.z_vel)
+                        abs(self.z_vel),
+                        self.angular_tolerance
                     )
 
                     target_found = True
@@ -220,44 +235,62 @@ class ApproachControllerNode(Node):
 
 
     #-----------------------------------------------------------------------------------------------
+    def update_item_details(self, item):
+        self.item_details = item
+        self.item_details.relative_yaw = np.deg2rad(self.item_details.relative_yaw) if self.item_details.relative_yaw is not None else 0
+        self.travel_distance = (self.item_details.distance - self.target_distance)
+        self.x_vel = min(self.travel_distance, self.max_linear_speed)
+        self.z_vel = min((self.item_details.relative_yaw *-1)/2, self.max_angular_speed)
+        
+        print(f'Received Item Details:\n Distance={self.item_details.distance:.2f}m,\n Relative Yaw={np.rad2deg(self.item_details.relative_yaw):.2f}deg')
+
+    #-----------------------------------------------------------------------------------------------
+    def calculate_movement_time(self, distance,velocity, tolerance=0.01):
+        if velocity <= 0:
+            return 0
+        if distance <= tolerance:
+            return 0
+        
+        return distance/velocity
+    
+    #-----------------------------------------------------------------------------------------------
+    def approach_target(self, item, move_msg:TwistStamped):
+        move_msg.twist.linear.x = self.x_vel
+        self.get_logger().info(f'Setting fwd spd {self.x_vel:.2f} m/s')
+
+    #-----------------------------------------------------------------------------------------------
+    def face_target(self, item, move_msg:TwistStamped):
+        move_msg.twist.angular.z = self.z_vel
+    #-----------------------------------------------------------------------------------------------
     def set_target_reached(self):
         status_msg = String()
         status_msg.data = self.ALIGNED_STATUS
         self.__status_pub.publish(status_msg)
 
         self.get_logger().info(f'Target {self.target_class} reached at distance {self.item_details.distance:.2f}m')
-
-        self.enabled = False
-        self.approaching = False
-        self.target_reached = True
         self.stop_robot()
-    #-----------------------------------------------------------------------------------------------
-    def update_item_details(self, item):
-        self.item_details = item
-        self.item_details.relative_yaw = np.deg2rad(self.item_details.relative_yaw) if self.item_details.relative_yaw is not None else 0
-        self.x_vel = min(self.item_details.distance, self.max_linear_speed)
-        self.z_vel = ((self.item_details.relative_yaw) *-1)/2
-        self.travel_distance = (self.item_details.distance - self.target_distance)
-
-    #-----------------------------------------------------------------------------------------------
-    def calculate_movement_time(self, distance,velocity):
-        if velocity <= 0:
-            return 0
-        return distance/velocity
-    
-    #-----------------------------------------------------------------------------------------------
-    def approach_target(self, item, move_msg:TwistStamped):
-        move_msg.twist.linear.x = self.x_vel
-
-    #-----------------------------------------------------------------------------------------------
-    def face_target(self, item, move_msg:TwistStamped):
-        move_msg.twist.angular.z = self.z_vel
     #-----------------------------------------------------------------------------------------------
     def stop_robot(self):
         twist = TwistStamped()
+        twist.twist.linear.x = 0.0
+        twist.twist.angular.z = 0.0
         self.__cmd_vel_pub.publish(twist)
 
+        self.log_stop_moving_time()
+        self.enabled = False
+        self.approaching = False
+        self.target_reached = True
 
+        self.get_logger().info('\n\n\n\n****************Robot Stopped****************\n\n\n\n')
+
+    #-----------------------------------------------------------------------------------------------
+    def log_start_moving_time(self):
+        if self.start_moving_time is None:
+                self.start_moving_time = self.get_clock().now()
+    
+    #-----------------------------------------------------------------------------------------------
+    def log_stop_moving_time(self):
+        self.stop_moving_time = self.get_clock().now()
     #-----------------------------------------------------------------------------------------------
     def control_loop(self):
         if not self.enabled:
@@ -265,15 +298,18 @@ class ApproachControllerNode(Node):
         
         move_msg = TwistStamped()
         
-        if self.countdown_timer_forward > 0:
-            self.countdown_timer_forward -= self.__timer_interval
-            self.approach_target(self.item_details, move_msg)
-            print (f'Moving Forward: {self.countdown_timer_forward:.2f}s remaining')
-
         if self.countdown_timer_turn > 0:
+            self.log_stop_moving_time()
             self.countdown_timer_turn -= self.__timer_interval
             self.face_target(self.item_details,move_msg)
             print (f'Turning: {self.countdown_timer_turn:.2f}s remaining')
+        else:
+            if self.countdown_timer_forward > 0:
+                self.log_stop_moving_time()
+                self.countdown_timer_forward -= self.__timer_interval
+                self.approach_target(self.item_details, move_msg)
+                print (f'Moving Forward: {self.countdown_timer_forward:.2f}s remaining')
+
 
         if self.approaching:
             if self.countdown_timer_forward <= 0 and self.countdown_timer_turn <= 0:

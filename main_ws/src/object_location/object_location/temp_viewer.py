@@ -29,31 +29,31 @@ class TempViewer(Node):
         self.__latest_map = None
         self.__latest_overlay = None
         
-        self.__combined_view_timer = self.create_timer(
-            0.5,
-            self.__update_combined_view
-        )
+        # self.__combined_view_timer = self.create_timer(
+        #     0.5,
+        #     self.__update_combined_view
+        # )
 
         self.__image_subscription = self.create_subscription(
             Image,
-            '/oakd/rgb/preview/image_raw',
+            '/sync/robot/state',
             self.image_callback,
             10
         )
 
-        self.__overlay_subscription = self.create_subscription(
-            OccupancyGrid,
-            '/grid/overlay',
-            self.overlay_callback,
-            10
-        )
+        # self.__overlay_subscription = self.create_subscription(
+        #     OccupancyGrid,
+        #     '/grid/overlay',
+        #     self.overlay_callback,
+        #     10
+        # )
 
-        self.__map_subscription = self.create_subscription(
-            OccupancyGrid,
-            '/grid/occupancy',
-            self.map_callback,
-            10
-        )
+        # self.__map_subscription = self.create_subscription(
+        #     OccupancyGrid,
+        #     '/grid/occupancy',
+        #     self.map_callback,
+        #     10
+        # )
 
         self.__detection_vision = self.create_subscription(
             RSyncDetectionList,
@@ -61,12 +61,12 @@ class TempViewer(Node):
             self.detection_vision_callback,
             10
         )
-        self.__navigation_subscription = self.create_subscription(
-            OccupancyGrid,
-            '/grid/navigation',
-            self.path_callback,
-            10
-        )
+        # self.__navigation_subscription = self.create_subscription(
+        #     OccupancyGrid,
+        #     '/grid/navigation',
+        #     self.path_callback,
+        #     10
+        # )
 
 
         self.__cv_bridge = CvBridge()
@@ -106,7 +106,7 @@ class TempViewer(Node):
         cv2.waitKey(1)
     #----------------------------------------------------------------------------------
     def image_callback(self, msg):
-        cv_image = self.__cv_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        cv_image = self.__cv_bridge.imgmsg_to_cv2(msg.rgb_image, desired_encoding='bgr8')
         cv2.imshow("Temp Viewer", cv_image)
         cv2.waitKey(1)
     #----------------------------------------------------------------------------------

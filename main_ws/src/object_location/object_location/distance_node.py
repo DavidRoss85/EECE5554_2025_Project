@@ -79,6 +79,7 @@ class DistanceNode(Node):
         self.__using_gazebo = self.DEFAULT_USING_GAZEBO
         self.__show_image = self.DEFAULT_SHOW_DEPTH                                       # Option to display depth image window
         self.__depth_factor = self.METER_DEPTH_FACTOR if self.__using_gazebo else self.MM_DEPTH_FACTOR
+        self.__depth_calculation_method = 'center'   # Options: 'center' or 'closest' (within bounding box)
 
         # Placeholder for parameter server imports
         self.__load_parameters()
@@ -162,11 +163,14 @@ class DistanceNode(Node):
                 # Depth lookup at bounding-box center
                 closest_point_on_x = min(closest_point_on_x, depth_map[yc,n])
 
-            relative_location.distance = float(closest_point_on_x) / self.__depth_factor  # Distance in m
-            # print(f"Item: {item.name}, xc: {xc}, yc: {yc}, w: {w}, h: {h}, xl: {xl}, xr: {xr}")
-            # print(f"Item: {item.name}, CLOSESET Distance: {relative_location.distance:.2f} m")
-            # relative_location.distance = float(depth_map[yc, xc]) / self.__depth_factor 
-            # print(f"Item: {item.name}, CENTER Distance: {relative_location.distance:.2f} m")
+            # Compute distance based on selected method
+            if self.__depth_calculation_method == 'closest':
+                relative_location.distance = float(closest_point_on_x) / self.__depth_factor  # Distance in m
+                # print(f"Item: {item.name}, CLOSEST Distance: {relative_location.distance:.2f} m")
+            else:
+                relative_location.distance = float(depth_map[yc, xc]) / self.__depth_factor 
+                # print(f"Item: {item.name}, CENTER Distance: {relative_location.distance:.2f} m")
+
             # Compute angular offset based on horizontal pixel location
             relative_location.relative_yaw = float(
                 self.__calculate_yaw_from_pixels(
