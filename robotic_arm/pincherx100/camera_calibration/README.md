@@ -16,22 +16,16 @@ This package provides:
 
 **For US Letter printers (8.5" × 11"):**
 
-Open `checkerboard_6x7_tiny_US_letter.svg` and print it:
+Open `checkerboard_6x7_large_US_letter.svg` and print it:
 - **Print at 100% scale** (do not scale to fit page)
 - Print on white paper or cardstock
 - **CRITICAL:** After printing, **measure actual square size with ruler**
-- Designed size: 12mm squares, but use YOUR measured size!
-- Total size: **8.4cm x 9.6cm** (fits within 8.5cm x 10cm limit ✓)
+- Designed size: 24mm squares, but use YOUR measured size!
+- Total size: **16.8cm x 19.2cm** (fits on US Letter paper ✓)
 - Mount on a **rigid flat surface** (foam board, cardboard, or wood)
 - Ensure the pattern is perfectly flat
 
 **Important:** The actual printed size doesn't matter as long as you measure it accurately!
-
-**For US Letter vs A4:**
-- US Letter (8.5"×11"): Use `checkerboard_6x7_tiny_US_letter.svg`
-- A4 (210×297mm): Use `checkerboard_6x7_tiny.svg`
-
-See `PRINTING_INSTRUCTIONS_US_LETTER.md` for detailed printing instructions.
 
 *(Alternative patterns: `checkerboard_6x5_small.svg`, `checkerboard_8x6.svg`)*
 
@@ -87,13 +81,12 @@ python camera_stream_client.py --ip <raspberry_pi_ip> --port 5000
 # Make sure camera is connected
 source venv/bin/activate
 
-# For 8.5cm x 10cm printer limitation:
-# Use TINY checkerboard (6x7 inner corners)
-# IMPORTANT: Use YOUR measured square size (e.g., if you measured 12mm):
-python calibrate_camera.py --camera 0 --pattern 6x7 --square 12
+# Use large checkerboard (6x7 inner corners) for hand-eye calibration
+# IMPORTANT: Use YOUR measured square size (e.g., if you measured 24mm):
+python calibrate_camera.py --camera 0 --pattern 6x7 --square 24
 
-# If your squares measured differently (e.g., 11mm), use that:
-# python calibrate_camera.py --camera 0 --pattern 6x7 --square 11
+# If your squares measured differently (e.g., 23mm), use that:
+# python calibrate_camera.py --camera 0 --pattern 6x7 --square 23
 
 # Follow the on-screen instructions:
 # 1. Hold checkerboard in front of camera
@@ -121,10 +114,10 @@ python test_calibration.py --camera 0 --calib camera_calibration.npz
 
 | File | Description |
 |------|-------------|
-| `checkerboard_6x7_tiny.svg` | **FOR 8.5×10cm PRINTER:** Tiny (6×7 corners, 12mm, 8.4×9.6cm) |
+| `checkerboard_6x7_large_US_letter.svg` | **FOR HAND-EYE CALIBRATION:** Large (6×7 corners, 24mm, 16.8×19.2cm) |
+| `checkerboard_6x7_tiny_US_letter.svg` | Small checkerboard (6×7 corners, 12mm, 8.4×9.6cm) - for camera intrinsic calibration |
 | `checkerboard_6x5_small.svg` | Small checkerboard (6×5 corners, 15mm, 10.5×9cm) |
 | `checkerboard_8x6.svg` | Large checkerboard (8×6 corners, 25mm, 22.5×17.5cm) |
-| `PRINTER_LIMITATION_GUIDE.md` | **READ THIS if printer limited to 8.5×10cm** |
 | `camera_stream_server.py` | HTTP/MJPEG streaming server for Raspberry Pi |
 | `camera_stream_client.py` | OpenCV-based client viewer for Mac |
 | `calibrate_camera.py` | Interactive camera calibration tool |

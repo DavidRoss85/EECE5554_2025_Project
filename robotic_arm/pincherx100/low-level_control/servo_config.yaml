@@ -1,0 +1,50 @@
+# Servo Position and Degree Range Configuration
+# This file defines the position ranges and degree mappings for each servo
+
+servos:
+  base:
+    id: 1
+    position_range:
+      min: 999      # Right most position (180 degrees)
+      max: 3093     # Left most position (0 degrees)
+    degree_range:
+      min: 0        # Left most (position 3093)
+      max: 180      # Right most (position 999)
+    # Note: Position decreases as degree increases (inverse relationship)
+    
+  shoulder:
+    id: 2
+    position_range:
+      min: 1353     # 0 degrees
+      max: 2722     # 120 degrees
+    degree_range:
+      min: 0
+      max: 120
+    
+  elbow:
+    id: 3
+    position_range:
+      min: 1019     # 0 degrees
+      max: 3065     # 180 degrees
+    degree_range:
+      min: 0
+      max: 180
+    
+  wrist:
+    id: 4
+    position_range:
+      min: 923      # 0 degrees
+      max: 3058     # 180 degrees
+    degree_range:
+      min: 0
+      max: 180
+    
+  gripper:
+    id: 5
+    position_range:
+      min: 1663     # Closed position (gap: 4.0cm)
+      max: 2409     # Open position (gap: 6.8cm)
+    gap_range:
+      min: 4.0      # cm (at position 1663)
+      max: 6.8      # cm (at position 2409)
+

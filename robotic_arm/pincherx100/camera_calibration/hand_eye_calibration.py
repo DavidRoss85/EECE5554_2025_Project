@@ -107,10 +107,15 @@ class HandEyeCalibration:
             )
             
             if success:
-                # Draw axis
-                axis_length = self.square_size * 3
-                cv2.drawFrameAxes(drawn_image, self.camera_matrix, self.dist_coeffs,
-                                rvec, tvec, axis_length, 2)
+                # Draw axis with adaptive length to fit in frame
+                distance = np.linalg.norm(tvec)
+                axis_length = min(self.square_size * 1.5, distance * 0.25)
+                # Suppress OpenCV warnings for axes out of frame
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    cv2.drawFrameAxes(drawn_image, self.camera_matrix, self.dist_coeffs,
+                                    rvec, tvec, axis_length, 2)
                 
                 return True, rvec, tvec, drawn_image
         
@@ -193,9 +198,9 @@ def main():
     parser.add_argument('--calib', type=str, default='camera_calibration.npz',
                        help='Camera calibration file (default: camera_calibration.npz)')
     parser.add_argument('--pattern', type=str, default='6x7',
-                       help='Checkerboard pattern inner corners (default: 6x7 for 8.5x10cm)')
-    parser.add_argument('--square', type=float, default=12.0,
-                       help='Square size in mm (default: 12mm - use YOUR measured size)')
+                       help='Checkerboard pattern inner corners (default: 6x7)')
+    parser.add_argument('--square', type=float, default=24.0,
+                       help='Square size in mm (default: 24mm for large pattern - use YOUR measured size)')
     args = parser.parse_args()
     
     # Parse pattern size

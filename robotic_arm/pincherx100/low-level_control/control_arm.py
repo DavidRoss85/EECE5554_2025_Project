@@ -33,12 +33,21 @@ ERROR MONITORING:
   - Check for mechanical obstructions
 
 Tuning Parameters (edit below):
-  PROFILE_VELOCITY: Lower = faster but less torque (range: 0-1023)
-                    Higher = slower but MORE TORQUE for lifting
-  PROFILE_ACCELERATION: Lower = more aggressive (range: 0-32767)
-  DEGREES_PER_STEP: How much to move per keypress (default: 5)
+  PROFILE_VELOCITY: Higher = slower movement BUT MORE TORQUE (range: 0-1023)
+                    Currently: 250 (gentle, high torque)
+  PROFILE_ACCELERATION: Higher = smoother, gentler acceleration (range: 0-32767)
+                        Currently: 150 (smooth acceleration)
+  DEGREES_PER_STEP: Per-joint step sizes:
+                    - Base: 2° (gentle, precise)
+                    - Shoulder: 8° (needs larger steps to generate torque)
+                    - Elbow: 3° (gentle)
+                    - Wrist: 3° (gentle)
   PWM_LIMIT: Maximum power (885 = 100%, DO NOT EXCEED)
   CURRENT_LIMIT: Maximum current (1193 = 2.69A max, DO NOT EXCEED)
+  
+NOTE: Dynamixel servos have built-in PID controllers. Profile Velocity and
+      Acceleration settings control movement smoothness and torque availability.
+      Higher values = slower but more controlled movement with better torque.
 """
 
 import os
@@ -47,6 +56,8 @@ import tty
 import termios
 import threading
 import time
+import yaml
+from pathlib import Path
 from dynamixel_sdk import *
 
 # Control table addresses for XL430-W250 (Protocol 2.0)
@@ -71,6 +82,9 @@ PROTOCOL_VERSION = 2.0
 DEVICENAME = '/dev/ttyUSB0'
 BAUDRATE = 1000000  # Default to 1000000 (confirmed working)
 
+# Config file path
+CONFIG_FILE = Path(__file__).parent / 'servo_config.yaml'
+
 # Servo IDs - Default PincherX100 configuration
 ID_BASE = 1      # Waist/Base rotation (A/D keys)
 ID_SHOULDER = 2  # Shoulder joint (W/S keys)
@@ -78,38 +92,121 @@ ID_ELBOW = 3     # Elbow joint (E/C keys)
 ID_WRIST = 4     # Wrist joint (R/V keys)
 ID_GRIPPER = 5   # Gripper (J/K keys)
 
-# Movement parameters
-DEGREES_PER_STEP = 6
-POSITION_STEP = int((4096 / 360) * DEGREES_PER_STEP)  # XL430 has 4096 positions per 360 degrees
+# Servo configuration (loaded from YAML file)
+SERVO_CONFIG = None
+POSITION_LIMITS = {}
 
-# Safe position limits for each servo (0-4095)
-# These prevent the arm from moving into dangerous positions
-POSITION_LIMITS = {
-    ID_BASE: (512, 3584),      # Base: allow ~300 degrees of rotation
-    ID_SHOULDER: (1024, 3072), # Shoulder: prevent extreme positions (safety)
-    ID_ELBOW: (512, 3584),     # Elbow: allow wide range
-    ID_WRIST: (512, 3584),     # Wrist: allow wide range
-    ID_GRIPPER: (1648, 2448),  # Gripper: limited range for open/close
+# Movement parameters - Per-joint degree steps
+# Each joint has different step size based on load and desired smoothness
+# Base: 2 degrees (gentle, precise movement)
+# Shoulder: 8 degrees (needs larger steps to generate enough torque to lift)
+# Elbow: 3 degrees (gentle movement)
+# Wrist: 3 degrees (gentle movement)
+DEGREES_PER_STEP = {
+    ID_BASE: 2,        # Gentle, precise base rotation
+    ID_SHOULDER: 8,    # Larger steps for torque (can't lift at 6 degrees)
+    ID_ELBOW: 6,       # Gentle elbow movement
+    ID_WRIST: 3,       # Gentle wrist movement
 }
 
-# Profile settings for smooth movement
+# Convert degrees to position steps (XL430 has 4096 positions per 360 degrees)
+POSITION_STEPS = {
+    servo_id: int((4096 / 360) * degrees) 
+    for servo_id, degrees in DEGREES_PER_STEP.items()
+}
+
+# Position limits will be loaded from config file
+# These prevent the arm from moving into dangerous positions
+
+# Profile settings for smooth, gentle movement
 # Profile Velocity: 0-1023 (0 = max speed, unlimited). Higher = slower
-# For smooth movement, use values like 50-200
-# IMPORTANT: Lower velocity = more torque available for lifting
-PROFILE_VELOCITY = 150        # Slower = more power (increased from 100)
+# IMPORTANT: Higher velocity = slower movement BUT MORE TORQUE available
+# We use higher values for slower, gentler movement while maintaining torque
+PROFILE_VELOCITY = 1000        # Slower movement (higher = slower but MORE torque available)
+                              # Range: 0-1023. Increase this to slow down movement speed
+                              # Was 250, increased for even slower, gentler movement
 
 # Profile Acceleration: 0-32767 (0 = instant, no acceleration control)
-# Higher values = smoother but slower acceleration
-PROFILE_ACCELERATION = 80     # Moderate acceleration for power
+# Higher values = smoother, gentler acceleration (less jerky)
+PROFILE_ACCELERATION = 32000    # Smoother acceleration (higher = gentler acceleration)
+                              # Was 150, increased to prevent fast acceleration
+                              # Increase this to make acceleration less aggressive
+
+# Per-joint profile settings (optional - can override global settings)
+# Shoulder needs special attention due to heavy load
+PROFILE_VELOCITY_PER_JOINT = {
+    ID_SHOULDER: 1000,  # Even slower for shoulder to maximize torque
+    # Other joints use global PROFILE_VELOCITY
+}
+
+PROFILE_ACCELERATION_PER_JOINT = {
+    ID_SHOULDER: 32000,  # Smoother acceleration for shoulder
+    # Other joints use global PROFILE_ACCELERATION
+}
 
 # Power/Torque settings (MAXIMUM values for XL430-W250)
 PWM_LIMIT = 885              # Max PWM (0-885 = 0-100% voltage) - MAXIMUM
 CURRENT_LIMIT = 1193         # Max current (0-1193 = 0-2.69A) - MAXIMUM
 # Note: These are the absolute maximum safe values for XL430-W250
 
-# Gripper parameters
-GRIPPER_OPEN_POS = 2048 + 400   # Adjust these values based on your gripper
-GRIPPER_CLOSED_POS = 2048 - 400
+# Gripper parameters (will be loaded from config)
+GRIPPER_CLOSED_POS = None
+GRIPPER_OPEN_POS = None
+GRIPPER_POS_RANGE = None
+GRIPPER_GAP_RANGE = None
+GRIPPER_STEP_CM = 0.2  # Adjust by 0.2cm per keypress
+GRIPPER_STEP_POS = None
+
+def load_servo_config():
+    """Load servo configuration from YAML file."""
+    global SERVO_CONFIG, POSITION_LIMITS
+    global GRIPPER_CLOSED_POS, GRIPPER_OPEN_POS, GRIPPER_POS_RANGE, GRIPPER_GAP_RANGE, GRIPPER_STEP_POS
+    
+    if not CONFIG_FILE.exists():
+        print(f"ERROR: Config file not found: {CONFIG_FILE}")
+        print("Please create servo_config.yaml in the same directory as control_arm.py")
+        sys.exit(1)
+    
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            SERVO_CONFIG = yaml.safe_load(f)
+        
+        # Build position limits dictionary from config
+        servo_mapping = {
+            'base': ID_BASE,
+            'shoulder': ID_SHOULDER,
+            'elbow': ID_ELBOW,
+            'wrist': ID_WRIST,
+            'gripper': ID_GRIPPER
+        }
+        
+        POSITION_LIMITS = {}
+        for name, servo_id in servo_mapping.items():
+            if name in SERVO_CONFIG['servos']:
+                config = SERVO_CONFIG['servos'][name]
+                pos_min = config['position_range']['min']
+                pos_max = config['position_range']['max']
+                # Ensure min < max
+                POSITION_LIMITS[servo_id] = (min(pos_min, pos_max), max(pos_min, pos_max))
+        
+        # Load gripper parameters
+        if 'gripper' in SERVO_CONFIG['servos']:
+            gripper_config = SERVO_CONFIG['servos']['gripper']
+            GRIPPER_CLOSED_POS = gripper_config['position_range']['min']
+            GRIPPER_OPEN_POS = gripper_config['position_range']['max']
+            GRIPPER_POS_RANGE = abs(GRIPPER_OPEN_POS - GRIPPER_CLOSED_POS)
+            GRIPPER_GAP_RANGE = gripper_config['gap_range']['max'] - gripper_config['gap_range']['min']
+            GRIPPER_STEP_POS = int(GRIPPER_STEP_CM * GRIPPER_POS_RANGE / GRIPPER_GAP_RANGE)
+        
+        print(f"Loaded servo configuration from {CONFIG_FILE}")
+        return True
+        
+    except Exception as e:
+        print(f"ERROR: Failed to load config file: {e}")
+        sys.exit(1)
+
+# Load configuration on import
+load_servo_config()
 
 class ArmController:
     def __init__(self, baudrate=57600):
@@ -161,14 +258,18 @@ class ArmController:
                 self.portHandler, servo_id, ADDR_CURRENT_LIMIT, CURRENT_LIMIT
             )
             
-            # Set Profile Velocity (slower = more torque)
+            # Set Profile Velocity (use per-joint if specified, else global)
+            # Higher velocity = slower movement BUT MORE TORQUE available
+            velocity = PROFILE_VELOCITY_PER_JOINT.get(servo_id, PROFILE_VELOCITY)
             self.packetHandler.write4ByteTxRx(
-                self.portHandler, servo_id, ADDR_PROFILE_VELOCITY, PROFILE_VELOCITY
+                self.portHandler, servo_id, ADDR_PROFILE_VELOCITY, velocity
             )
             
-            # Set Profile Acceleration (controls smoothness)
+            # Set Profile Acceleration (use per-joint if specified, else global)
+            # Higher acceleration = smoother, gentler movement
+            acceleration = PROFILE_ACCELERATION_PER_JOINT.get(servo_id, PROFILE_ACCELERATION)
             self.packetHandler.write4ByteTxRx(
-                self.portHandler, servo_id, ADDR_PROFILE_ACCELERATION, PROFILE_ACCELERATION
+                self.portHandler, servo_id, ADDR_PROFILE_ACCELERATION, acceleration
             )
             
             # Enable torque
@@ -182,13 +283,22 @@ class ArmController:
                 print(f"  Warning: Could not enable servo ID {servo_id}")
         
         print("\n" + "=" * 60)
-        print("MAXIMUM POWER MODE ENABLED")
+        print("MAXIMUM POWER MODE ENABLED - GENTLE MOVEMENT")
         print("=" * 60)
         print(f"PWM Limit: {PWM_LIMIT}/885 (100% voltage)")
         print(f"Current Limit: {CURRENT_LIMIT}/1193 (2.69A max)")
-        print(f"Profile Velocity: {PROFILE_VELOCITY} (slower = more torque)")
-        print(f"Profile Acceleration: {PROFILE_ACCELERATION}")
-        print("\nShoulder should now have maximum lifting power!")
+        print(f"\nProfile Settings (Higher = Slower but MORE Torque):")
+        print(f"  Global Velocity: {PROFILE_VELOCITY} (gentle movement)")
+        print(f"  Global Acceleration: {PROFILE_ACCELERATION} (smooth)")
+        if ID_SHOULDER in PROFILE_VELOCITY_PER_JOINT:
+            print(f"  Shoulder Velocity: {PROFILE_VELOCITY_PER_JOINT[ID_SHOULDER]} (extra torque)")
+            print(f"  Shoulder Acceleration: {PROFILE_ACCELERATION_PER_JOINT[ID_SHOULDER]} (smoother)")
+        print(f"\nPer-Joint Step Sizes:")
+        print(f"  Base: {DEGREES_PER_STEP[ID_BASE]}° per press")
+        print(f"  Shoulder: {DEGREES_PER_STEP[ID_SHOULDER]}° per press (needs larger steps)")
+        print(f"  Elbow: {DEGREES_PER_STEP[ID_ELBOW]}° per press")
+        print(f"  Wrist: {DEGREES_PER_STEP[ID_WRIST]}° per press")
+        print("\nShoulder optimized for maximum lifting power!")
         print("=" * 60)
         return True
     
@@ -257,9 +367,11 @@ class ArmController:
             self.packetHandler.write2ByteTxRx(self.portHandler, servo_id, ADDR_PWM_LIMIT, PWM_LIMIT)
             self.packetHandler.write2ByteTxRx(self.portHandler, servo_id, ADDR_CURRENT_LIMIT, CURRENT_LIMIT)
             
-            # Set profile settings
-            self.packetHandler.write4ByteTxRx(self.portHandler, servo_id, ADDR_PROFILE_VELOCITY, PROFILE_VELOCITY)
-            self.packetHandler.write4ByteTxRx(self.portHandler, servo_id, ADDR_PROFILE_ACCELERATION, PROFILE_ACCELERATION)
+            # Set profile settings (use per-joint if specified, else global)
+            velocity = PROFILE_VELOCITY_PER_JOINT.get(servo_id, PROFILE_VELOCITY)
+            acceleration = PROFILE_ACCELERATION_PER_JOINT.get(servo_id, PROFILE_ACCELERATION)
+            self.packetHandler.write4ByteTxRx(self.portHandler, servo_id, ADDR_PROFILE_VELOCITY, velocity)
+            self.packetHandler.write4ByteTxRx(self.portHandler, servo_id, ADDR_PROFILE_ACCELERATION, acceleration)
             
             # Enable torque
             self.packetHandler.write1ByteTxRx(self.portHandler, servo_id, ADDR_TORQUE_ENABLE, 1)
@@ -314,73 +426,217 @@ class ArmController:
     
     def move_base_left(self):
         """Rotate base left."""
+        step = POSITION_STEPS[ID_BASE]
         before = self.get_present_position(ID_BASE)
-        success = self.move_servo_relative(ID_BASE, POSITION_STEP)
+        success = self.move_servo_relative(ID_BASE, step)
         after = self.get_present_position(ID_BASE)
         
         if success and before and after:
-            print(f"Base: LEFT  {before:4d} -> {after:4d} (Δ{after-before:+4d})    ", end='\r')
+            deg_before = self.position_to_degree(ID_BASE, before)
+            deg_after = self.position_to_degree(ID_BASE, after)
+            if deg_before is not None and deg_after is not None:
+                print(f"Base: LEFT  pos: {after:4d}  {deg_after:5.1f}° (Δ{deg_after-deg_before:+.1f}°)    ", end='\r')
+            else:
+                print(f"Base: LEFT  {before:4d} -> {after:4d} (Δ{after-before:+4d}, {DEGREES_PER_STEP[ID_BASE]}°)    ", end='\r')
         else:
             print(f"Base: LEFT  (error reading position)              ", end='\r')
     
     def move_base_right(self):
         """Rotate base right."""
+        step = POSITION_STEPS[ID_BASE]
         before = self.get_present_position(ID_BASE)
-        success = self.move_servo_relative(ID_BASE, -POSITION_STEP)
+        success = self.move_servo_relative(ID_BASE, -step)
         after = self.get_present_position(ID_BASE)
         
         if success and before and after:
-            print(f"Base: RIGHT {before:4d} -> {after:4d} (Δ{after-before:+4d})    ", end='\r')
+            deg_before = self.position_to_degree(ID_BASE, before)
+            deg_after = self.position_to_degree(ID_BASE, after)
+            if deg_before is not None and deg_after is not None:
+                print(f"Base: RIGHT pos: {after:4d}  {deg_after:5.1f}° (Δ{deg_after-deg_before:+.1f}°)    ", end='\r')
+            else:
+                print(f"Base: RIGHT {before:4d} -> {after:4d} (Δ{after-before:+4d}, {DEGREES_PER_STEP[ID_BASE]}°)    ", end='\r')
         else:
             print(f"Base: RIGHT (error reading position)              ", end='\r')
     
     def move_arm_up(self):
         """Move arm up (shoulder)."""
-        self.move_servo_relative(ID_SHOULDER, -POSITION_STEP)
+        step = POSITION_STEPS[ID_SHOULDER]
+        self.move_servo_relative(ID_SHOULDER, -step)
         pos = self.get_present_position(ID_SHOULDER)
-        print(f"Shoulder: UP (pos: {pos})     ", end='\r')
+        degree = self.position_to_degree(ID_SHOULDER, pos)
+        if degree is not None:
+            print(f"Shoulder: UP pos: {pos:4d}  {degree:5.1f}°     ", end='\r')
+        else:
+            print(f"Shoulder: UP (pos: {pos}, {DEGREES_PER_STEP[ID_SHOULDER]}°)     ", end='\r')
     
     def move_arm_down(self):
         """Move arm down (shoulder)."""
-        self.move_servo_relative(ID_SHOULDER, POSITION_STEP)
+        step = POSITION_STEPS[ID_SHOULDER]
+        self.move_servo_relative(ID_SHOULDER, step)
         pos = self.get_present_position(ID_SHOULDER)
-        print(f"Shoulder: DOWN (pos: {pos})   ", end='\r')
+        degree = self.position_to_degree(ID_SHOULDER, pos)
+        if degree is not None:
+            print(f"Shoulder: DOWN pos: {pos:4d}  {degree:5.1f}°   ", end='\r')
+        else:
+            print(f"Shoulder: DOWN (pos: {pos}, {DEGREES_PER_STEP[ID_SHOULDER]}°)   ", end='\r')
     
     def move_elbow_up(self):
         """Move elbow up."""
-        self.move_servo_relative(ID_ELBOW, -POSITION_STEP)  # Inverted like shoulder
+        step = POSITION_STEPS[ID_ELBOW]
+        self.move_servo_relative(ID_ELBOW, -step)  # Inverted like shoulder
         pos = self.get_present_position(ID_ELBOW)
-        print(f"Elbow: UP (pos: {pos})        ", end='\r')
+        degree = self.position_to_degree(ID_ELBOW, pos)
+        if degree is not None:
+            print(f"Elbow: UP pos: {pos:4d}  {degree:5.1f}°        ", end='\r')
+        else:
+            print(f"Elbow: UP (pos: {pos}, {DEGREES_PER_STEP[ID_ELBOW]}°)        ", end='\r')
     
     def move_elbow_down(self):
         """Move elbow down."""
-        self.move_servo_relative(ID_ELBOW, POSITION_STEP)   # Inverted like shoulder
+        step = POSITION_STEPS[ID_ELBOW]
+        self.move_servo_relative(ID_ELBOW, step)   # Inverted like shoulder
         pos = self.get_present_position(ID_ELBOW)
-        print(f"Elbow: DOWN (pos: {pos})      ", end='\r')
+        degree = self.position_to_degree(ID_ELBOW, pos)
+        if degree is not None:
+            print(f"Elbow: DOWN pos: {pos:4d}  {degree:5.1f}°      ", end='\r')
+        else:
+            print(f"Elbow: DOWN (pos: {pos}, {DEGREES_PER_STEP[ID_ELBOW]}°)      ", end='\r')
     
     def move_wrist_up(self):
         """Move wrist up."""
-        self.move_servo_relative(ID_WRIST, -POSITION_STEP)  # Inverted like shoulder
+        step = POSITION_STEPS[ID_WRIST]
+        self.move_servo_relative(ID_WRIST, -step)  # Inverted like shoulder
         pos = self.get_present_position(ID_WRIST)
-        print(f"Wrist: UP (pos: {pos})        ", end='\r')
+        degree = self.position_to_degree(ID_WRIST, pos)
+        if degree is not None:
+            print(f"Wrist: UP pos: {pos:4d}  {degree:5.1f}°        ", end='\r')
+        else:
+            print(f"Wrist: UP (pos: {pos}, {DEGREES_PER_STEP[ID_WRIST]}°)        ", end='\r')
     
     def move_wrist_down(self):
         """Move wrist down."""
-        self.move_servo_relative(ID_WRIST, POSITION_STEP)   # Inverted like shoulder
+        step = POSITION_STEPS[ID_WRIST]
+        self.move_servo_relative(ID_WRIST, step)   # Inverted like shoulder
         pos = self.get_present_position(ID_WRIST)
-        print(f"Wrist: DOWN (pos: {pos})      ", end='\r')
+        degree = self.position_to_degree(ID_WRIST, pos)
+        if degree is not None:
+            print(f"Wrist: DOWN pos: {pos:4d}  {degree:5.1f}°      ", end='\r')
+        else:
+            print(f"Wrist: DOWN (pos: {pos}, {DEGREES_PER_STEP[ID_WRIST]}°)      ", end='\r')
+    
+    def position_to_degree(self, servo_id, position):
+        """Convert servo position to degrees based on config."""
+        if servo_id not in POSITION_LIMITS:
+            return None
+        
+        servo_name_map = {
+            ID_BASE: 'base',
+            ID_SHOULDER: 'shoulder',
+            ID_ELBOW: 'elbow',
+            ID_WRIST: 'wrist'
+        }
+        
+        if servo_id not in servo_name_map:
+            return None
+        
+        servo_name = servo_name_map[servo_id]
+        if servo_name not in SERVO_CONFIG['servos']:
+            return None
+        
+        config = SERVO_CONFIG['servos'][servo_name]
+        pos_min = config['position_range']['min']
+        pos_max = config['position_range']['max']
+        deg_min = config['degree_range']['min']
+        deg_max = config['degree_range']['max']
+        
+        # Clamp position to range
+        position = max(min(pos_min, pos_max), min(max(pos_min, pos_max), position))
+        
+        # Base has inverse relationship (position decreases as degree increases)
+        if servo_id == ID_BASE:
+            # Position 3093 = 0°, Position 999 = 180°
+            if position >= pos_max:  # pos_max is 3093 (0°)
+                return deg_min
+            elif position <= pos_min:  # pos_min is 999 (180°)
+                return deg_max
+            else:
+                # Inverse linear interpolation
+                degree = deg_min + (pos_max - position) * (deg_max - deg_min) / (pos_max - pos_min)
+        else:
+            # Normal relationship (position increases as degree increases)
+            if position <= pos_min:
+                return deg_min
+            elif position >= pos_max:
+                return deg_max
+            else:
+                # Linear interpolation
+                degree = deg_min + (position - pos_min) * (deg_max - deg_min) / (pos_max - pos_min)
+        
+        return round(degree, 1)
+    
+    def position_to_gap(self, position):
+        """Convert gripper position to gap in cm."""
+        if GRIPPER_CLOSED_POS is None or GRIPPER_OPEN_POS is None:
+            return None
+        
+        if position < GRIPPER_CLOSED_POS:
+            if 'gripper' in SERVO_CONFIG['servos']:
+                return SERVO_CONFIG['servos']['gripper']['gap_range']['min']
+            return 4.0
+        elif position > GRIPPER_OPEN_POS:
+            if 'gripper' in SERVO_CONFIG['servos']:
+                return SERVO_CONFIG['servos']['gripper']['gap_range']['max']
+            return 6.8
+        else:
+            # Linear interpolation
+            if GRIPPER_POS_RANGE == 0:
+                return None
+            gap_min = SERVO_CONFIG['servos']['gripper']['gap_range']['min']
+            gap_max = SERVO_CONFIG['servos']['gripper']['gap_range']['max']
+            gap = gap_min + (position - GRIPPER_CLOSED_POS) * (gap_max - gap_min) / GRIPPER_POS_RANGE
+            return round(gap, 2)
     
     def gripper_open(self):
-        """Open gripper."""
-        self.set_goal_position(ID_GRIPPER, GRIPPER_OPEN_POS)
-        pos = self.get_present_position(ID_GRIPPER)
-        print(f"Gripper: OPEN (pos: {pos})    ", end='\r')
+        """Open gripper by 0.2cm."""
+        current_pos = self.get_present_position(ID_GRIPPER)
+        if current_pos is None:
+            print(f"Gripper: Cannot read position              ", end='\r')
+            return
+        
+        # Move towards open position (increase position)
+        new_pos = current_pos + GRIPPER_STEP_POS
+        
+        # Clamp to limits
+        if new_pos > GRIPPER_OPEN_POS:
+            new_pos = GRIPPER_OPEN_POS
+        
+        success = self.set_goal_position(ID_GRIPPER, new_pos)
+        if success:
+            gap = self.position_to_gap(new_pos)
+            print(f"Gripper: OPEN  pos: {new_pos:4d}  gap: {gap:.2f}cm    ", end='\r')
+        else:
+            print(f"Gripper: OPEN  (error)                    ", end='\r')
     
     def gripper_close(self):
-        """Close gripper."""
-        self.set_goal_position(ID_GRIPPER, GRIPPER_CLOSED_POS)
-        pos = self.get_present_position(ID_GRIPPER)
-        print(f"Gripper: CLOSE (pos: {pos})   ", end='\r')
+        """Close gripper by 0.2cm."""
+        current_pos = self.get_present_position(ID_GRIPPER)
+        if current_pos is None:
+            print(f"Gripper: Cannot read position              ", end='\r')
+            return
+        
+        # Move towards closed position (decrease position)
+        new_pos = current_pos - GRIPPER_STEP_POS
+        
+        # Clamp to limits
+        if new_pos < GRIPPER_CLOSED_POS:
+            new_pos = GRIPPER_CLOSED_POS
+        
+        success = self.set_goal_position(ID_GRIPPER, new_pos)
+        if success:
+            gap = self.position_to_gap(new_pos)
+            print(f"Gripper: CLOSE pos: {new_pos:4d}  gap: {gap:.2f}cm    ", end='\r')
+        else:
+            print(f"Gripper: CLOSE (error)                    ", end='\r')
     
     def show_all_positions(self):
         """Display current positions and status of all servos."""
@@ -405,7 +661,20 @@ class ArmController:
             
             if pos is not None:
                 status = "ERROR" if has_error else "OK"
-                print(f"  {name:12} (ID {servo_id}): {pos:4d} {limit_info:15} {status}")
+                # Show gap for gripper
+                if servo_id == ID_GRIPPER:
+                    gap = self.position_to_gap(pos)
+                    if gap is not None:
+                        print(f"  {name:12} (ID {servo_id}): {pos:4d} {limit_info:15} gap: {gap:.2f}cm  {status}")
+                    else:
+                        print(f"  {name:12} (ID {servo_id}): {pos:4d} {limit_info:15} {status}")
+                else:
+                    # Show degrees for other servos
+                    degree = self.position_to_degree(servo_id, pos)
+                    if degree is not None:
+                        print(f"  {name:12} (ID {servo_id}): {pos:4d} {limit_info:15} {degree:5.1f}°  {status}")
+                    else:
+                        print(f"  {name:12} (ID {servo_id}): {pos:4d} {limit_info:15} {status}")
                 if has_error:
                     print(f"               -> {', '.join(error_msgs)}")
         
@@ -556,7 +825,7 @@ def print_instructions():
     print("  W/S - Shoulder movement (Up/Down)")
     print("  E/C - Elbow movement (Up/Down)")
     print("  R/V - Wrist movement (Up/Down)")
-    print("  J/K - Gripper (Close/Open)")
+    print("  J/K - Gripper (Close/Open by 0.2cm per press)")
     print("\nUtilities:")
     print("  H   - Home (center all servos to safe position)")
     print("  P   - Show all positions & status")
@@ -566,7 +835,11 @@ def print_instructions():
     print("\nSafety:")
     print("  • Position limits enabled to prevent damage")
     print("  • Red flashing LED = Overload error (press X to clear)")
-    print("  • Step size: {} degrees per press".format(DEGREES_PER_STEP))
+    print("  • Per-joint step sizes:")
+    print(f"    - Base: {DEGREES_PER_STEP[ID_BASE]}° per press (gentle)")
+    print(f"    - Shoulder: {DEGREES_PER_STEP[ID_SHOULDER]}° per press (needs larger steps for torque)")
+    print(f"    - Elbow: {DEGREES_PER_STEP[ID_ELBOW]}° per press (gentle)")
+    print(f"    - Wrist: {DEGREES_PER_STEP[ID_WRIST]}° per press (gentle)")
     print("  • Press H if arm is in strange position")
     print("\n" + "=" * 70)
     print("\nPress keys to control the arm...\n")
