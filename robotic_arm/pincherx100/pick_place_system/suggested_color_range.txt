@@ -1,9 +1,0 @@
-Suggested HSV Color Range
-========================================
-
-Lower: [168, 185, 120]
-Upper: [179, 226, 152]
-
-Use in cap_detector.py:
-  'lower': np.array([168, 185, 120]),
-  'upper': np.array([179, 226, 152])
