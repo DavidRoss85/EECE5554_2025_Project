@@ -1,0 +1,194 @@
+# PincherX-100 Robot Configuration
+# AprilTag-Based Pick and Place System
+# Three Bottle Configuration: Orange, Apple, Yogurt
+
+# Robot link dimensions (in meters)
+robot_dimensions:
+  L1: 0.0950  # Base origin (platform) to base servo height (measured: 95mm)
+  L2: 0.1010  # Shoulder to elbow length
+  L3: 0.1010  # Elbow to wrist length
+  L4: 0.1090  # Wrist to TCP (end-effector) length
+  Lm: 0.0315  # Offset for shoulder mechanism
+
+# Servo IDs
+servo_ids:
+  base: 1
+  shoulder: 2
+  elbow: 3
+  wrist: 4
+  gripper: 5
+
+# Servo position limits (0-4095)
+position_limits:
+  base: [512, 3584]
+  shoulder: [1024, 3072]
+  elbow: [512, 3584]
+  wrist: [512, 3584]
+  gripper: [1648, 2448]
+
+# Movement parameters
+# NOTE: Higher values = SLOWER movement with MORE TORQUE (0-1023 range)
+movement:
+  profile_velocity: 300    # INCREASED for slower, stronger movements (was 150)
+  profile_acceleration: 150  # INCREASED for gentler acceleration (was 80)
+  degrees_per_step: 6
+
+# Gripper positions (0-4095)
+gripper:
+  open_position: 2448
+  closed_position: 1648
+
+# Named arm positions (servo positions 0-4095)
+# Format: [base, shoulder, elbow, wrist]
+positions:
+  home:
+    values: [2048, 2048, 2048, 2048]  # Center position (all joints at 180°)
+    description: "Center position with all joints at 180 degrees"
+  
+  retract:
+    values: [2048, 1353, 3073, 937]  # Fully retracted position
+    description: "Fully retracted position (shoulder=1353, elbow=3073, wrist=937)"
+
+# Workspace constraints (in robot base frame, meters)
+workspace:
+  base_rotation_limit_degrees: 90
+  max_reach: 0.24  # Maximum horizontal reach in meters
+  min_height: 0.00  # Minimum Z height (platform level)
+  max_height: 0.30  # Maximum Z height
+
+# Camera configuration
+camera:
+  # Camera position relative to robot base center (in meters)
+  position:
+    x: 0.0    # Centered on base in X direction
+    y: 0.15   # 150mm forward from base center
+    z: 0.70   # 700mm above platform
+  
+  # Camera orientation (top-down view, pointing down)
+  orientation:
+    roll: 0.0
+    pitch: -1.5708  # -90 degrees (pointing down)
+    yaw: 0.0
+  
+  # Image dimensions
+  image:
+    width: 1280  # pixels
+    height: 720  # pixels
+  
+  # Camera intrinsic parameters (loaded from calibration)
+  calibration_file: "calibration/camera_calibration.npz"
+
+# AprilTag configuration
+apriltags:
+  enabled: true
+  tag_size: 0.0254  # Physical size of tags in meters (1.0 inch = 25.4mm)
+  family: "tag36h11"  # AprilTag family
+  
+  # Detection quality thresholds
+  min_decision_margin: 20.0  # Minimum decision margin for reliable detection
+  max_hamming_error: 2       # Maximum hamming error (0 = perfect)
+  
+  # Map AprilTag IDs to object types (THREE BOTTLES)
+  tag_mapping:
+    # Objects to pick
+    0: "orange_bottle"
+    1: "apple_bottle"
+    2: "yogurt_bottle"
+    
+    # Drop zones
+    10: "drop_zone_orange"
+    11: "drop_zone_apple"
+    12: "drop_zone_yogurt"
+  
+  # Multi-tag averaging (if multiple tags per object)
+  use_multi_tag_averaging: false
+  max_tags_per_object: 1
+
+# Object dimensions (in meters)
+# Three bottles: Orange, Apple, Yogurt
+objects:
+  orange_bottle:
+    width: 0.053
+    length: 0.053
+    height: 0.185
+    grip_height_ratio: 0.5  # Grip at middle of bottle
+    tag_offset_z: 0.0  # Tag position relative to object top
+    color: "orange"
+    description: "Orange bottle"
+    
+  apple_bottle:
+    radius: 0.030
+    height: 0.200
+    grip_height_ratio: 0.5
+    tag_offset_z: 0.0
+    color: "red"
+    description: "Apple bottle"
+  
+  yogurt_bottle:
+    radius: 0.026
+    height: 0.155
+    grip_height_ratio: 0.5
+    tag_offset_z: 0.0
+    color: "white"
+    description: "Yogurt bottle"
+
+# Pick and place parameters
+pick_place:
+  approach_height: 0.03  # Height above object before descending (meters)
+  grip_height: 0.0       # Height offset for gripping (relative to object center)
+  lift_height: 0.08      # Height to lift after grasping (meters)
+  drop_height: 0.03      # Height above drop location (meters)
+  
+  # Movement timing
+  movement_delay: 3.0    # Delay between movements (seconds) - increased for slower movements
+  grip_delay: 1.5        # Delay for gripper operation (seconds) - increased for reliability
+  
+  # Safety parameters
+  max_velocity: 300      # Maximum servo velocity (higher = slower with more torque)
+  max_acceleration: 150  # Maximum servo acceleration (higher = gentler)
+  position_tolerance: 0.005  # Position tolerance in meters
+
+# Coordinate transformation
+coordinate_transform:
+  # Camera to base transformation
+  # These are derived from camera position
+  use_geometric_transform: true
+  
+  # Axis offset calibration (in meters)
+  # Adjust these if detected positions don't match actual measurements
+  x_offset: 0.0    # X-axis correction
+  y_offset: 0.084  # Y-axis correction (if detected 0.116m but actual is 0.20m, set to ~0.084)
+  z_offset: 0.482  # Z-axis correction (if detected -0.482m but actual is 0, set to 0.482)
+
+# Logging configuration
+logging:
+  enabled: true
+  log_directory: "logs"
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_detections: true
+  log_movements: true
+  save_detection_images: false
+
+# Safety limits
+safety:
+  enable_collision_detection: false
+  enable_joint_limits: true
+  enable_workspace_limits: true
+  emergency_stop_enabled: true
+  
+  # Torque limits (if supported by servos)
+  max_torque_percentage: 80
+
+# Performance tuning
+performance:
+  detection_fps: 30
+  detection_threads: 1
+  use_gpu: false  # Set to true if GPU available for detection
+  
+# Development/Debug options
+debug:
+  show_detections: false
+  save_debug_images: false
+  verbose_logging: false
+  dry_run: false  # If true, don't actually move arm
+
