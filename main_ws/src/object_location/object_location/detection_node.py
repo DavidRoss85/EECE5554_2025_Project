@@ -40,7 +40,7 @@ class DetectionNode(Node):
     YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
     DEFAULT_YOLO_MODEL_PATH = YOLO_MODEL_LIST[1]  # Use yolov8n.pt for nano model
     DEFAULT_CONFIDENCE_THRESHOLD = 0.8
-    DEFAULT_WANTED_LIST = ['bottle','cup','book','person']   # Items to look for
+    DEFAULT_WANTED_LIST = ['bottle','cup','book']   # Items to look for
     DEFAULT_REJECT_LIST = []
 
     #OpenCV

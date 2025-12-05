@@ -23,6 +23,17 @@ from object_location_interfaces.msg import(
 
 class ApproachControllerNode(Node):
 
+
+    APPROACH_MSG = 'APPROACHING'
+    IDLE_MSG = 'IDLE'
+    DETECTING_MSG = 'DETECTING'
+    PICKING_MSG = 'PICKING'
+    DONE_MSG = 'DONE'
+
+    ALIGNED_STATUS = 'aligned'
+    NOT_ALIGNED_STATUS = 'aligning'
+
+
     def __init__(self):
         super().__init__('approach_controller_node')
         self.get_logger().info('Initializing Approach Controller Node...')
@@ -31,6 +42,8 @@ class ApproachControllerNode(Node):
         self.__qos = 10
         self.__location_topic = '/objects/locations'
         self.__velocity_topic = '/cmd_vel'
+        self.__mission_topic = '/mission/state'
+        self.__status_topic = '/visual_servo/status'
 
         # location data
         self.__target_item_id = 'bottle'  # Example target item ID
@@ -47,9 +60,9 @@ class ApproachControllerNode(Node):
         self.__dead_reckoning_distance = 0.8  # meters
         self.__angular_tolerance = np.deg2rad(10.0)  # radians
 
+        self.__begin_approach = False
         self.__fast_approach = True
         self.__last_sensor_reading_time = None
-        self.__begin_approach = True
         self.__target_info = None
         self.__last_target_info = None
         self.__last_reckoning_update_time = None
@@ -57,19 +70,35 @@ class ApproachControllerNode(Node):
         self.__enable_approach = True
 
         # Subscribers and Publishers
+
+        # Subscribe to location topic
         self.__location_subscription = self.create_subscription(
             RSyncLocationList,
             self.__location_topic,
             self.__location_received_callback,
             self.__qos
         )
-
+        # Subscribe to mission state topic
+        self.__mission_sub = self.create_subscription(
+            String,
+            self.__mission_topic,
+            self.__mission_callback,
+            self.__qos
+        )
+        # Publish velocity topic
         self.__velocity_publisher = self.create_publisher(
             TwistStamped,
             self.__velocity_topic,
             self.__qos
         )
-
+        # Publish status topic
+        self.__status_pub = self.create_publisher(
+            String,
+            self.__status_topic,
+            self.__qos
+        )
+        
+        
         self.__control_timer = self.create_timer(self.__timer_inerval, self.__control_loop)
 
     def __location_received_callback(self, msg: RSyncLocationList):
@@ -104,17 +133,27 @@ class ApproachControllerNode(Node):
         stop_msg.twist.linear.x = 0.0
         stop_msg.twist.angular.z = 0.0
         self.__velocity_publisher.publish(stop_msg)
+
+    def __reset_variables(self):
+        """Reset internal state variables"""
+        self.__fast_approach = True
+        self.__last_sensor_reading_time = None
+        self.__begin_approach = False
+        self.__target_info = None
+        self.__last_target_info = None
+        self.__last_reckoning_update_time = None
+        self.__locked_target = False
     #--------------------------------------------------------------------------
     def __goal_reached(self):
         """Handle actions when goal is reached"""
         self.get_logger().info('Goal reached. Stopping robot.')
         self.__stop_robot()
+        self.__reset_variables()
 
+        status_msg = String()
+        status_msg.data = self.ALIGNED_STATUS
+        self.__status_pub.publish(status_msg)
 
-        self.__begin_approach = False
-        self.__target_info = None
-        self.__last_target_info = None
-        self.__locked_target = False
     #--------------------------------------------------------------------------
     def __update_target_info(self, target: ItemData):
         """Update target information based on new location data"""
@@ -139,6 +178,9 @@ class ApproachControllerNode(Node):
 
         if target.distance > self.__dead_reckoning_distance and not self.__locked_target:
             self.__last_target_info = target
+        else:
+            if self.__last_target_info is None:
+                self.__last_target_info = target
 
         self.__last_sensor_reading_time = current_time
     
@@ -284,6 +326,32 @@ class ApproachControllerNode(Node):
         if self.__target_info is not None:
             if self.__begin_approach:
                 self.__approach_target(self.__target_info)
+
+
+    #-----------------------------------------------------------------------------------------------
+    def __mission_callback(self, msg:String):
+        """ Handle mission state messages to enable/disable approach controller"""
+        if msg.data == self.DETECTING_MSG:
+            self.__begin_approach =False
+            self.__stop_robot()
+            self.get_logger().info('Approach Controller Disabled for DETECTING')
+        elif msg.data == self.PICKING_MSG:
+            self.__begin_approach =False
+            self.__stop_robot()
+            self.get_logger().info('Approach Controller Disabled for PICKING')
+        elif msg.data == self.DONE_MSG:
+            self.__begin_approach =False
+            self.__stop_robot()
+            self.get_logger().info('Approach Controller Disabled for DONE')
+        elif msg.data == self.IDLE_MSG:
+            self.__begin_approach =False
+            self.__stop_robot()
+            self.get_logger().info('Approach Controller Disabled')
+        elif msg.data == self.APPROACH_MSG:
+            self.__reset_variables()
+            self.__begin_approach =True
+            
+            self.get_logger().info('Approach Controller Enabled')
 
 #***************************************************************************************************
 #***************************************************************************************************

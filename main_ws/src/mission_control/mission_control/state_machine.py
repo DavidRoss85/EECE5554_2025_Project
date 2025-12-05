@@ -108,7 +108,7 @@ class StateMachineNode(Node):
             self.target_object = command.replace('pick_', '')
             #---------------
             #Testing....
-            self.target_object = 'person'
+            # self.target_object = 'person'
             #---------------
             self.get_logger().info(f'🎯 Starting mission to pick: {self.target_object}')
             self.transition_to(MissionState.DETECTING)
