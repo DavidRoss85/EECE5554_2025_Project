@@ -28,7 +28,8 @@ setup(
             'distance_node = object_location.distance_node:main',
             'map_node = object_location.map_node:main',
             'temp_viewer = object_location.temp_viewer:main',
-            'approach_controller_node = object_location.approach_controller_node:main',
+            'approach_controller_node = object_location.new_approach_controller_node:main',
+            'navigator_node = object_location.navigator_node:main',
         ],
     },
 )

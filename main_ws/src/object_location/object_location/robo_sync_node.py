@@ -167,9 +167,14 @@ class RoboSyncNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     robo_sync_node = RoboSyncNode()
-    rclpy.spin(robo_sync_node)
-    robo_sync_node.destroy_node()
-    rclpy.shutdown()
+
+    try:
+        rclpy.spin(robo_sync_node)
+    except KeyboardInterrupt:
+        print('Shutting down RoboSyncNode...')
+    finally:
+        robo_sync_node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
