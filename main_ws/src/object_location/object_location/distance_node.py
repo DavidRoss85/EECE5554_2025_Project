@@ -180,8 +180,8 @@ class DistanceNode(Node):
                 )
             )
             # print(f"Item: {item.name}, Distance: {relative_location.distance:.2f} mm, Yaw: {relative_location.relative_yaw:.2f}°")
-
-            locations_list.append(relative_location)
+            if relative_location.distance > 0:
+                locations_list.append(relative_location)
 
         # Bundle computed locations and republish synchronized message
         rsync_msg = self.__generate_location_message(locations_list, message.robo_sync)

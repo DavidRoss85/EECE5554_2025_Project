@@ -12,7 +12,7 @@ from cv_bridge import CvBridge
 # Math imports
 import numpy as np
 
-IMAGE_TOPIC = '/oakd/rgb/preview/depth'
+IMAGE_TOPIC = '/oakd/stereo/image_raw' # '/oakd/rgb/preview/depth'
 MAX_MSG = 10
 DEFAULT_IMAGE_CONVERSION = 'passthrough' #'bgr8'
 

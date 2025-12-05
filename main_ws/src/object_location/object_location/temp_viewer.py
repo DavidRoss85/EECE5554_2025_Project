@@ -35,12 +35,12 @@ class TempViewer(Node):
         # )
 
         self.__image_subscription = self.create_subscription(
-            Image,
+            RSync,
             '/sync/robot/state',
             self.image_callback,
             10
         )
-
+ 
         # self.__overlay_subscription = self.create_subscription(
         #     OccupancyGrid,
         #     '/grid/overlay',
@@ -70,7 +70,7 @@ class TempViewer(Node):
 
 
         self.__cv_bridge = CvBridge()
-        cv2.namedWindow("Temp Viewer", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("Sync Image Viewer", cv2.WINDOW_NORMAL)
         # cv2.namedWindow("Overlay Map", cv2.WINDOW_NORMAL)
         # cv2.namedWindow("Base Map", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Detections", cv2.WINDOW_NORMAL)
@@ -106,8 +106,10 @@ class TempViewer(Node):
         cv2.waitKey(1)
     #----------------------------------------------------------------------------------
     def image_callback(self, msg):
-        cv_image = self.__cv_bridge.imgmsg_to_cv2(msg.rgb_image, desired_encoding='bgr8')
-        cv2.imshow("Temp Viewer", cv_image)
+        cv_image = self.__cv_bridge.imgmsg_to_cv2(msg.rgb_image, desired_encoding='passthrough')
+        depth_image = self.__cv_bridge.imgmsg_to_cv2(msg.depth_image, desired_encoding='passthrough')
+        cv2.imshow("Sync Image Viewer", cv_image)
+        cv2.imshow("Depth Image Viewer", depth_image)
         cv2.waitKey(1)
     #----------------------------------------------------------------------------------
     def overlay_callback(self, msg):

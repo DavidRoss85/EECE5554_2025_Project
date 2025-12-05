@@ -40,8 +40,8 @@ class DetectionNode(Node):
     YOLO_MODEL_LIST = ['yolov8n.pt', 'yolov8s.pt', 'yolov8m.pt']
     DEFAULT_YOLO_MODEL_PATH = YOLO_MODEL_LIST[1]  # Use yolov8n.pt for nano model
     DEFAULT_CONFIDENCE_THRESHOLD = 0.8
-    DEFAULT_WANTED_LIST = ['bottle','cup','book']   # Items to look for
-    DEFAULT_REJECT_LIST = ['person']
+    DEFAULT_WANTED_LIST = ['bottle','cup','book','person']   # Items to look for
+    DEFAULT_REJECT_LIST = []
 
     #OpenCV
     DEFAULT_IMAGE_ENCODING = 'passthrough'#'bgr8'  # OpenCV uses BGR format
@@ -79,6 +79,7 @@ class DetectionNode(Node):
         self.__wanted_list = self.DEFAULT_WANTED_LIST # Update this list to filter detections
         self.__reject_list = self.DEFAULT_REJECT_LIST
         self.__still_in_function = False
+        self.__process_device = 'cuda:0'  #Options: 'cpu' or 'cuda' for GPU processing
 
         self.__load_parameters()    #Load external parameters
 
@@ -127,7 +128,7 @@ class DetectionNode(Node):
         # Convert ros2 message to image:
         cv_image = self.__bridge.imgmsg_to_cv2(rgb_image,self.__image_encoding)
         # Pass frame through model and return results:
-        results = self.__model(cv_image, verbose=False)[0]
+        results = self.__model(cv_image, verbose=False,device=self.__process_device)[0]
         # Save original image:
         self.__pure_image = cv_image
         self.__annotated_image = cv_image

@@ -16,7 +16,7 @@ import numpy as np
 
 DEFAULT_IMAGE_CONVERSION = 'passthrough' #'bgr8'
 
-DEFAULT_IMAGE_TOPIC = '/oakd/rgb/preview/image_raw'
+DEFAULT_IMAGE_TOPIC = '/oakd/rgb/image_raw'
 # DEPTH_TOPIC = '/oakd/right/image_raw' #'/oakd/stereo/image_raw/compressedDepth' #'/oakd/rgb/preview/depth'
 DEPTH_TOPIC = '/oakd/stereo/image_raw' #'/oakd/rgb/preview/depth'
 # DEPTH_TOPIC = '/oakd/left/image_raw' #'/oakd/stereo/image_raw/compressedDepth' #'/oakd/rgb/preview/depth'
@@ -38,26 +38,26 @@ class DepthAssign(Node):
             MAX_MSG
         )
 
-        self.__rgb_sub = self.create_subscription(
-            Image,
-            DEFAULT_IMAGE_TOPIC,
-            self.__process_image,
-            MAX_MSG
-        )
+        # self.__rgb_sub = self.create_subscription(
+        #     Image,
+        #     DEFAULT_IMAGE_TOPIC,
+        #     self.__process_image,
+        #     MAX_MSG
+        # )
 
         self.__depth_map = None
 
     def __process_depth(self, msg:Image):
         print("Received depth data")
         # return
-        cv_image = self.__bridge.imgmsg_to_cv2(msg,DEFAULT_IMAGE_CONVERSION)
-        cv2.imshow("depth",cv_image)
-        cv2.waitKey(1)
+        # cv_image = self.__bridge.imgmsg_to_cv2(msg,DEFAULT_IMAGE_CONVERSION)
+        # cv2.imshow("depth",cv_image)
+        # cv2.waitKey(1)
 
-        return 
+        # return 
         cv_image = self.__bridge.imgmsg_to_cv2(msg,DEFAULT_IMAGE_CONVERSION)
-        self.__depth_map = np.clip(cv_image,0,100)
-        depth_image = np.clip(self.__depth_map,0,100)
+        self.__depth_map = np.clip(cv_image,0,65000)
+        depth_image = np.clip(self.__depth_map,0,65000)
         depth_image = cv2.normalize(depth_image,None,0,255,cv2.NORM_MINMAX).astype(np.uint8)
  
         cv2.imshow("depth", depth_image)

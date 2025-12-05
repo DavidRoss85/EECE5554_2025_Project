@@ -1,5 +1,6 @@
 
 # ROS2 Imports
+from matplotlib import image
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
@@ -114,10 +115,10 @@ class DepthAssign(Node):
                         cv_image,
                         x = xc,
                         y = yc,
-                        text = f"{self.__depth_map[yc,xc]:.2f}m away",
-                        bgr = (0,255,0)
+                        text = f"{self.__depth_map[yc,xc]:.2f}mm away",
+                        bgr = (0,10,0)
                     )
-        
+                    annotated_image[yc,xc] = (0,0,255)
 
         
         cv2.imshow("this",annotated_image)
@@ -142,6 +143,7 @@ class DepthAssign(Node):
             thickness=thickness,
             lineType=cv2.LINE_AA
         )
+
         return image
 def main(args=None):
     rclpy.init(args=args)
