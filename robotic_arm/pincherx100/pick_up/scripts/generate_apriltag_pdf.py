@@ -25,9 +25,28 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
-from dt_apriltags import Detector
 import tempfile
 import os
+
+
+def generate_apriltag_image(tag_id, tag_size_pixels=500):
+    """
+    Generate AprilTag image using cv2.aruco.
+    
+    Args:
+        tag_id: Tag ID (0-586 for 36h11 family)
+        tag_size_pixels: Size of output image in pixels
+    
+    Returns:
+        numpy array with tag image
+    """
+    # AprilTag 36h11 corresponds to DICT_APRILTAG_36h11 in cv2.aruco
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+    
+    # Generate tag
+    tag_image = cv2.aruco.generateImageMarker(aruco_dict, tag_id, tag_size_pixels)
+    
+    return tag_image
 
 
 class AprilTagGenerator:
@@ -41,112 +60,19 @@ class AprilTagGenerator:
             family: AprilTag family (default: tag36h11)
         """
         self.family = family
-        self.detector = Detector(families=family)
     
-    def generate_tag_image(self, tag_id, size_pixels=500, border_size=1):
+    def generate_tag_image(self, tag_id, size_pixels=500):
         """
-        Generate AprilTag image.
+        Generate AprilTag image using OpenCV.
         
         Args:
             tag_id: Tag ID to generate
             size_pixels: Output image size in pixels
-            border_size: White border size (in tag units, usually 1)
         
         Returns:
             numpy array with tag image (binary: 0 or 255)
         """
-        # For tag36h11, the actual tag grid is 10x10 (8x8 data + 2x2 border)
-        # We add additional white border around it
-        
-        # Generate tag pattern (this is a simplified approach)
-        # In practice, we'd use the actual tag encoding, but for now
-        # we'll create a placeholder and let the dt_apriltags library handle it
-        
-        # Create a synthetic tag by encoding the pattern
-        # The tag36h11 family has specific patterns for each ID
-        
-        # For demonstration, create a simple pattern
-        # In production, you'd use the actual AprilTag pattern
-        tag_size = 10  # tag36h11 has 10x10 grid
-        total_size = tag_size + 2 * border_size
-        
-        # Create image with border
-        img_size = size_pixels
-        cell_size = img_size // total_size
-        img = np.ones((cell_size * total_size, cell_size * total_size), dtype=np.uint8) * 255
-        
-        # This is a placeholder - in reality, you need the actual tag pattern
-        # For tag36h11, each tag has a specific 36-bit pattern
-        # Here we'll create a simple visual representation
-        
-        # Create border (black)
-        border_pixels = border_size * cell_size
-        
-        # Outer black border
-        img[border_pixels:border_pixels+cell_size*8, border_pixels:border_pixels+cell_size*8] = 0
-        
-        # Inner white border
-        img[border_pixels+cell_size:border_pixels+cell_size*7, 
-            border_pixels+cell_size:border_pixels+cell_size*7] = 255
-        
-        # Data region (simplified pattern based on tag ID)
-        # In reality, this should be the actual tag encoding
-        data_region = border_pixels + cell_size * 2
-        data_size = cell_size * 6
-        
-        # Create a simple pattern based on tag_id for demonstration
-        for i in range(6):
-            for j in range(6):
-                bit_pos = i * 6 + j
-                if bit_pos < 36:
-                    bit_val = (tag_id >> bit_pos) & 1
-                    if bit_val == 1:
-                        y = data_region + i * cell_size
-                        x = data_region + j * cell_size
-                        img[y:y+cell_size, x:x+cell_size] = 0
-        
-        # Add outer black border
-        cv2.rectangle(img, (0, 0), (img.shape[1]-1, img.shape[0]-1), 0, border_pixels)
-        
-        return img
-    
-    def create_actual_tag_image(self, tag_id, size_pixels=500):
-        """
-        Create actual AprilTag image using pre-computed patterns.
-        This is a more accurate method but requires the tag patterns.
-        
-        For now, we'll use OpenCV to draw a basic representation.
-        """
-        # Create white background
-        img = np.ones((size_pixels, size_pixels), dtype=np.uint8) * 255
-        
-        # For tag36h11, we have a 10x10 grid
-        # The tag pattern is specific to each ID
-        # Here we create a simplified version
-        
-        cell_size = size_pixels // 10
-        
-        # Draw black outer border (2 cells wide)
-        cv2.rectangle(img, (0, 0), (size_pixels, size_pixels), 0, cell_size * 2)
-        
-        # Draw white inner border (1 cell)
-        inner_start = cell_size * 2
-        inner_end = size_pixels - cell_size * 2
-        cv2.rectangle(img, (inner_start, inner_start), (inner_end, inner_end), 255, cell_size)
-        
-        # Data area (6x6 cells)
-        data_start = cell_size * 3
-        
-        # Simple pattern based on tag ID (not actual tag encoding)
-        np.random.seed(tag_id)  # Consistent pattern per tag
-        for i in range(6):
-            for j in range(6):
-                if np.random.random() < 0.5:
-                    y = data_start + i * cell_size
-                    x = data_start + j * cell_size
-                    cv2.rectangle(img, (x, y), (x + cell_size, y + cell_size), 0, -1)
-        
-        return img
+        return generate_apriltag_image(tag_id, size_pixels)
     
     def save_tag_image(self, tag_id, filename, size_pixels=500):
         """
@@ -161,7 +87,7 @@ class AprilTagGenerator:
         cv2.imwrite(filename, img)
         print(f"Saved tag {tag_id} to {filename}")
     
-    def create_pdf_single(self, tag_id, output_file, tag_size_inches=3.0):
+    def create_pdf_single(self, tag_id, output_file, tag_size_inches=1.0, include_info=True):
         """
         Create PDF with single AprilTag.
         
@@ -169,13 +95,15 @@ class AprilTagGenerator:
             tag_id: Tag ID to generate
             output_file: Output PDF filename
             tag_size_inches: Tag size in inches
+            include_info: Include tag ID and size information on PDF
         """
         # Create canvas
         c = canvas.Canvas(output_file, pagesize=letter)
         page_width, page_height = letter
         
-        # Generate tag image
-        img = self.generate_tag_image(tag_id, size_pixels=1000)
+        # Generate tag image (high resolution for printing)
+        tag_size_pixels = 1000
+        img = self.generate_tag_image(tag_id, tag_size_pixels)
         
         # Save temporary image
         temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
@@ -184,42 +112,77 @@ class AprilTagGenerator:
         # Calculate position (centered)
         tag_size = tag_size_inches * inch
         x = (page_width - tag_size) / 2
-        y = (page_height - tag_size) / 2
-        
-        # Add title
-        c.setFont("Helvetica-Bold", 16)
-        c.drawCentredString(page_width / 2, page_height - 50, 
-                           f"AprilTag {self.family} - ID {tag_id}")
-        
-        # Add instructions
-        c.setFont("Helvetica", 10)
-        c.drawCentredString(page_width / 2, page_height - 70,
-                           f"Print at 100% scale (no fitting). Tag size: {tag_size_inches} inches")
+        y = (page_height - tag_size) / 2 + inch  # Offset up a bit for text below
         
         # Draw tag
         c.drawImage(temp_file.name, x, y, width=tag_size, height=tag_size)
         
-        # Add measurement guides
-        c.setStrokeColor(colors.red)
+        if include_info:
+            # Add title
+            c.setFont("Helvetica-Bold", 16)
+            title_y = y + tag_size + 0.5 * inch
+            c.drawCentredString(page_width / 2, title_y, f"AprilTag 36h11 - ID {tag_id}")
+            
+            # Add size information
+            c.setFont("Helvetica", 12)
+            info_y = y - 0.5 * inch
+            c.drawCentredString(page_width / 2, info_y, f"Tag Size: {tag_size_inches:.2f} inches")
+            c.drawCentredString(page_width / 2, info_y - 0.25 * inch, 
+                              f"Measure and verify actual size after printing")
+            
+            # Add border measurements
+            c.setFont("Helvetica", 10)
+            c.setStrokeColorRGB(0.7, 0.7, 0.7)
+            c.setLineWidth(0.5)
+            
+            # Horizontal measurement lines
+            c.line(x - 0.25*inch, y, x, y)
+            c.line(x - 0.25*inch, y + tag_size, x, y + tag_size)
+            c.line(x - 0.25*inch, y, x - 0.25*inch, y + tag_size)
+            
+            # Size label
+            label_x = x - 0.5 * inch
+            label_y = y + tag_size / 2
+            c.saveState()
+            c.translate(label_x, label_y)
+            c.rotate(90)
+            c.drawCentredString(0, 0, f'{tag_size_inches}"')
+            c.restoreState()
+            
+            # Add usage instructions at bottom
+            c.setFont("Helvetica", 10)
+            instructions = [
+                "Instructions:",
+                "1. Print this page without scaling (actual size)",
+                "2. Verify tag size with ruler (should be exactly as specified)",
+                "3. Cut out tag carefully along edges",
+                "4. Attach to top of bottle with tag visible to camera",
+                "5. Keep tag flat and unwrinkled for best detection"
+            ]
+            
+            instruction_y = 1.5 * inch
+            for i, instruction in enumerate(instructions):
+                c.drawString(inch, instruction_y - i * 0.2 * inch, instruction)
+        
+        # Draw cut marks at corners
+        c.setStrokeColorRGB(0.5, 0.5, 0.5)
         c.setLineWidth(0.5)
+        mark_length = 0.2 * inch
         
-        # Horizontal guide
-        c.line(x - 20, y + tag_size / 2, x, y + tag_size / 2)
-        c.line(x + tag_size, y + tag_size / 2, x + tag_size + 20, y + tag_size / 2)
+        corners = [
+            (x, y),  # Bottom-left
+            (x + tag_size, y),  # Bottom-right
+            (x, y + tag_size),  # Top-left
+            (x + tag_size, y + tag_size)  # Top-right
+        ]
         
-        # Vertical guide
-        c.line(x + tag_size / 2, y - 20, x + tag_size / 2, y)
-        c.line(x + tag_size / 2, y + tag_size, x + tag_size / 2, y + tag_size + 20)
-        
-        # Add size labels
-        c.setFont("Helvetica", 8)
-        c.drawString(x + tag_size + 25, y + tag_size / 2 - 3, f"{tag_size_inches}\"")
-        
-        # Add tag info at bottom
-        c.setFont("Helvetica", 8)
-        c.drawString(50, 50, f"Tag ID: {tag_id}")
-        c.drawString(50, 35, f"Family: {self.family}")
-        c.drawString(50, 20, f"Size: {tag_size_inches} inches ({tag_size_inches * 25.4:.1f} mm)")
+        for cx, cy in corners:
+            # Horizontal marks
+            c.line(cx - mark_length, cy, cx, cy)
+            c.line(cx, cy, cx + mark_length, cy)
+            # Vertical marks
+            c.line(cx, cy - mark_length, cx, cy)
+            c.line(cx, cy, cx, cy + mark_length)
         
         # Save PDF
         c.save()
@@ -227,64 +190,57 @@ class AprilTagGenerator:
         # Clean up temp file
         os.unlink(temp_file.name)
         
-        print(f"Created PDF: {output_file}")
+        print(f"Created {output_file}")
+        print(f"  Tag ID: {tag_id}")
+        print(f"  Tag Size: {tag_size_inches} inches")
+        print(f"  Family: 36h11")
     
-    def create_pdf_multi(self, tag_ids, output_file, tag_size_inches=3.0):
+    def create_pdf_multi(self, tag_ids, output_file, tag_size_inches=1.0, tags_per_row=2):
         """
         Create PDF with multiple AprilTags on one page.
         
         Args:
             tag_ids: List of tag IDs
             output_file: Output PDF filename
-            tag_size_inches: Tag size in inches
+            tag_size_inches: Size of each tag in inches
+            tags_per_row: Number of tags per row
         """
-        # Create canvas
         c = canvas.Canvas(output_file, pagesize=letter)
         page_width, page_height = letter
         
-        # Calculate layout (2 columns)
-        cols = 2
-        rows = (len(tag_ids) + cols - 1) // cols
-        
-        tag_size = tag_size_inches * inch
+        # Calculate layout
+        tag_size_points = tag_size_inches * inch
         margin = 0.5 * inch
-        spacing = 0.3 * inch
+        spacing = 0.5 * inch
         
-        # Add title
-        c.setFont("Helvetica-Bold", 14)
-        c.drawCentredString(page_width / 2, page_height - 40,
-                           f"AprilTags {self.family} - Three Bottle System")
+        # Starting position
+        start_x = margin
+        start_y = page_height - margin - tag_size_points
         
-        c.setFont("Helvetica", 9)
-        c.drawCentredString(page_width / 2, page_height - 55,
-                           f"Print at 100% scale. Tag size: {tag_size_inches} inches each")
+        row = 0
+        col = 0
         
-        # Draw tags
-        y_start = page_height - 80
-        
-        for idx, tag_id in enumerate(tag_ids):
-            row = idx // cols
-            col = idx % cols
+        for tag_id in tag_ids:
+            # Generate tag
+            tag_image = self.generate_tag_image(tag_id, 800)
+            temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+            cv2.imwrite(temp_file.name, tag_image)
             
             # Calculate position
-            x = margin + col * (tag_size + spacing)
-            y = y_start - row * (tag_size + spacing + 30)
+            x = start_x + col * (tag_size_points + spacing)
+            y = start_y - row * (tag_size_points + spacing)
             
-            if y < margin + tag_size:
-                # New page if needed
+            # Check if we need a new page
+            if y < margin:
                 c.showPage()
-                y = page_height - 80
-            
-            # Generate and save tag image
-            img = self.generate_tag_image(tag_id, size_pixels=1000)
-            temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
-            cv2.imwrite(temp_file.name, img)
+                row = 0
+                y = start_y
             
             # Draw tag
-            c.drawImage(temp_file.name, x, y - tag_size, width=tag_size, height=tag_size)
+            c.drawImage(temp_file.name, x, y, width=tag_size_points, height=tag_size_points)
             
             # Add label
-            c.setFont("Helvetica-Bold", 10)
+            c.setFont("Helvetica", 10)
             
             # Get bottle name from tag ID
             tag_names = {
@@ -297,49 +253,42 @@ class AprilTagGenerator:
             }
             
             tag_name = tag_names.get(tag_id, f"Tag {tag_id}")
-            c.drawString(x, y - tag_size - 15, f"ID {tag_id}: {tag_name}")
+            c.drawCentredString(x + tag_size_points/2, y - 0.2*inch, f"ID {tag_id}: {tag_name}")
             
             # Clean up
             os.unlink(temp_file.name)
+            
+            # Update position
+            col += 1
+            if col >= tags_per_row:
+                col = 0
+                row += 1
         
-        # Add footer
-        c.setFont("Helvetica", 8)
-        c.drawString(50, 20, f"Tag size: {tag_size_inches}\" ({tag_size_inches * 25.4:.1f} mm) | Family: {self.family}")
+        # Add title
+        c.setFont("Helvetica-Bold", 14)
+        c.drawCentredString(page_width / 2, page_height - 0.3*inch, "AprilTag 36h11 Sheet - Three Bottle System")
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(page_width / 2, page_height - 0.5*inch, 
+                           f"Tag Size: {tag_size_inches} inches each")
         
-        # Save PDF
         c.save()
-        print(f"Created multi-tag PDF: {output_file}")
+        print(f"Created {output_file} with {len(tag_ids)} tags")
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Generate AprilTag PDFs for Three Bottle System',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Generate all tags for three bottle system (default)
-  python generate_apriltag_pdf.py --all --size 1.0
-  
-  # Generate specific tags
-  python generate_apriltag_pdf.py --id 0 1 2 --size 1.0 --multi
-  
-  # Generate single tag
-  python generate_apriltag_pdf.py --id 0 --size 1.0
-        """
-    )
-    
-    parser.add_argument('--id', type=int, nargs='+',
-                       help='Tag IDs to generate (e.g., 0 1 2 10 11 12)')
+    parser = argparse.ArgumentParser(description='Generate AprilTag PDFs for printing')
+    parser.add_argument('--id', type=int, nargs='+', default=[0, 1, 2],
+                       help='Tag ID(s) to generate (default: 0 1 2)')
     parser.add_argument('--all', action='store_true',
                        help='Generate all tags for three bottle system (0,1,2,10,11,12)')
     parser.add_argument('--size', type=float, default=1.0,
                        help='Tag size in inches (default: 1.0)')
+    parser.add_argument('--output', type=str, default=None,
+                       help='Output filename (default: apriltag_ID.pdf or apriltags_sheet.pdf)')
     parser.add_argument('--multi', action='store_true',
-                       help='Generate multiple tags on one page')
-    parser.add_argument('--output', type=str,
-                       help='Output PDF filename')
-    parser.add_argument('--family', type=str, default='tag36h11',
-                       help='AprilTag family (default: tag36h11)')
+                       help='Generate all tags on one sheet')
+    parser.add_argument('--tags-per-row', type=int, default=2,
+                       help='Tags per row for multi-tag sheet (default: 2)')
     
     args = parser.parse_args()
     
@@ -352,40 +301,39 @@ Examples:
         # Default: all tags
         tag_ids = [0, 1, 2, 10, 11, 12]
     
-    # Determine output filename
-    if args.output:
-        output_file = args.output
-    else:
-        if args.multi or len(tag_ids) > 1:
-            output_file = f"apriltags_{args.family}_{args.size}inch_multi.pdf"
-        else:
-            output_file = f"apriltag_{args.family}_id{tag_ids[0]}_{args.size}inch.pdf"
-    
-    # Generate tags
-    generator = AprilTagGenerator(family=args.family)
-    
-    print(f"Generating AprilTags:")
-    print(f"  Family: {args.family}")
+    print("AprilTag PDF Generator")
+    print("=" * 60)
+    print(f"  Family: 36h11")
     print(f"  Size: {args.size} inches ({args.size * 25.4:.1f} mm)")
     print(f"  Tag IDs: {tag_ids}")
-    print(f"  Output: {output_file}")
     print()
+    
+    # Generate tags
+    generator = AprilTagGenerator(family='tag36h11')
     
     if args.multi or len(tag_ids) > 1:
-        generator.create_pdf_multi(tag_ids, output_file, tag_size_inches=args.size)
+        # Generate multi-tag sheet
+        output_file = args.output or 'apriltags_sheet.pdf'
+        generator.create_pdf_multi(tag_ids, output_file, args.size, args.tags_per_row)
     else:
-        generator.create_pdf_single(tag_ids[0], output_file, tag_size_inches=args.size)
+        # Generate individual PDFs
+        for tag_id in tag_ids:
+            output_file = args.output or f'apriltag_{tag_id:03d}.pdf'
+            generator.create_pdf_single(tag_id, output_file, args.size)
     
-    print()
     print("=" * 60)
-    print("IMPORTANT PRINTING INSTRUCTIONS:")
-    print("=" * 60)
-    print("1. Open the PDF in a PDF viewer")
-    print("2. Print at 100% scale (NO SCALING, NO 'FIT TO PAGE')")
-    print("3. Measure the printed tag with a ruler")
-    print(f"4. Tag should be exactly {args.size} inches ({args.size * 25.4:.1f} mm)")
-    print("5. If size is wrong, check printer settings and reprint")
-    print("=" * 60)
+    print("\nNext steps:")
+    print("1. Print the PDF(s) at actual size (no scaling)")
+    print("2. Measure the printed tag to verify size")
+    print("3. Cut out carefully and attach to bottles")
+    print(f"4. Update robot_config.yaml with tag size: {args.size * 0.0254:.4f} meters")
+    print("\nTag ID mapping:")
+    print("  - Tag 0: Orange bottle")
+    print("  - Tag 1: Apple bottle")
+    print("  - Tag 2: Yogurt bottle")
+    print("  - Tag 10: Orange drop zone")
+    print("  - Tag 11: Apple drop zone")
+    print("  - Tag 12: Yogurt drop zone")
 
 
 if __name__ == '__main__':

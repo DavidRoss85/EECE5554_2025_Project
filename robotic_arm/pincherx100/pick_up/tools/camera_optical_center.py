@@ -44,6 +44,7 @@ class OpticalCenterVisualizer:
         """
         self.camera_index = camera_index
         self.show_help = True
+        self.show_grid = False
         
         # Load camera calibration
         if calibration_file is None:
@@ -54,29 +55,34 @@ class OpticalCenterVisualizer:
                 'camera_calibration.npz'
             )
         
+        # Load calibration data
+        self.calib_data = None
         if os.path.exists(calibration_file):
-            calib_data = np.load(calibration_file)
-            self.camera_matrix = calib_data['camera_matrix']
-            self.dist_coeffs = calib_data['dist_coeffs']
+            self.calib_data = np.load(calibration_file)
+            self.camera_matrix = self.calib_data['camera_matrix']
+            self.dist_coeffs = self.calib_data['dist_coeffs']
             
-            # Extract optical center (principal point)
-            self.cx = self.camera_matrix[0, 2]
-            self.cy = self.camera_matrix[1, 2]
+            # Extract optical center (principal point) from calibration
+            self.cx_calib = self.camera_matrix[0, 2]
+            self.cy_calib = self.camera_matrix[1, 2]
             self.fx = self.camera_matrix[0, 0]
             self.fy = self.camera_matrix[1, 1]
             
             print("="*60)
             print("CAMERA CALIBRATION LOADED")
             print("="*60)
-            print(f"Optical Center (cx, cy): ({self.cx:.1f}, {self.cy:.1f}) pixels")
+            print(f"Calibration Optical Center (cx, cy): ({self.cx_calib:.1f}, {self.cy_calib:.1f}) pixels")
             print(f"Focal Length (fx, fy): ({self.fx:.1f}, {self.fy:.1f}) pixels")
             print("="*60)
         else:
             print(f"WARNING: Calibration file not found: {calibration_file}")
             print("Using image center as optical center")
             self.camera_matrix = None
-            self.cx = None
-            self.cy = None
+            self.dist_coeffs = None
+            self.cx_calib = None
+            self.cy_calib = None
+            self.fx = None
+            self.fy = None
         
         # Open camera
         self.cap = cv2.VideoCapture(self.camera_index)
@@ -87,17 +93,53 @@ class OpticalCenterVisualizer:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         
-        # Get actual resolution
-        self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        # Get actual resolution (read a frame first to ensure resolution is set)
+        ret, test_frame = self.cap.read()
+        if ret:
+            self.height, self.width = test_frame.shape[:2]
+        else:
+            self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
-        # If no calibration, use image center
-        if self.cx is None:
+        # Calculate optical center based on actual frame size
+        # If calibration exists, scale the optical center to match current resolution
+        if self.camera_matrix is not None and self.calib_data is not None:
+            # Get calibration image size if available
+            # Note: image_size is stored as [width, height] in calibration files
+            if 'image_size' in self.calib_data:
+                calib_width, calib_height = self.calib_data['image_size']
+            else:
+                # Assume calibration was done at same resolution
+                calib_width = self.width
+                calib_height = self.height
+            
+            # Scale optical center if resolution differs
+            if calib_width != self.width or calib_height != self.height:
+                scale_x = self.width / calib_width
+                scale_y = self.height / calib_height
+                self.cx = self.cx_calib * scale_x
+                self.cy = self.cy_calib * scale_y
+                print(f"Scaled optical center from calibration ({calib_width}x{calib_height})")
+                print(f"  to current resolution ({self.width}x{self.height})")
+            else:
+                # Same resolution - use calibration values directly
+                self.cx = self.cx_calib
+                self.cy = self.cy_calib
+                print(f"Using calibration optical center directly (resolution matches: {self.width}x{self.height})")
+            
+            # Note: We don't apply undistortion for this tool because:
+            # 1. The optical center (cx, cy) is in raw image coordinates
+            # 2. Undistortion would remap pixels and make crosshair position incorrect
+            # 3. For calibration, we need to see where the camera actually points in raw image
+        else:
+            # If no calibration, use image center
             self.cx = self.width / 2
             self.cy = self.height / 2
         
         print(f"\nCamera Resolution: {self.width}x{self.height}")
         print(f"Optical Center will be marked at: ({self.cx:.1f}, {self.cy:.1f})")
+        print("Note: Showing RAW image (no undistortion) for accurate calibration")
+        print("      Optical center coordinates are in raw image space")
         print("\n")
     
     def draw_crosshair(self, frame, x, y, color=(0, 0, 255), size=40, thickness=2):
@@ -113,15 +155,39 @@ class OpticalCenterVisualizer:
         """
         x, y = int(x), int(y)
         
-        # Draw crosshair lines
+        # Draw crosshair lines (longer for better visibility)
         cv2.line(frame, (x - size, y), (x + size, y), color, thickness)
         cv2.line(frame, (x, y - size), (x, y + size), color, thickness)
         
-        # Draw center circle
+        # Draw center circle (filled)
         cv2.circle(frame, (x, y), 5, color, -1)
         
         # Draw outer circle
         cv2.circle(frame, (x, y), size, color, thickness)
+        
+        return frame
+    
+    def draw_reference_grid(self, frame, step=100):
+        """
+        Draw a reference grid to help verify alignment.
+        
+        Args:
+            frame: Image frame
+            step: Grid spacing in pixels
+        """
+        h, w = frame.shape[:2]
+        
+        # Draw vertical lines
+        for x in range(0, w, step):
+            cv2.line(frame, (x, 0), (x, h), (100, 100, 100), 1)
+        
+        # Draw horizontal lines
+        for y in range(0, h, step):
+            cv2.line(frame, (0, y), (w, y), (100, 100, 100), 1)
+        
+        # Draw center lines (thicker)
+        cv2.line(frame, (w//2, 0), (w//2, h), (150, 150, 150), 2)
+        cv2.line(frame, (0, h//2), (w, h//2), (150, 150, 150), 2)
         
         return frame
     
@@ -151,10 +217,13 @@ class OpticalCenterVisualizer:
                 "3. Measure Y distance (forward from base center)",
                 "4. Update camera.position in robot_config.yaml",
                 "",
+                "GREEN CORNERS verify full frame is visible (no crop)",
+                "",
                 "CONTROLS:",
                 "  Q - Quit",
                 "  S - Save screenshot",
-                "  H - Toggle this help"
+                "  H - Toggle this help",
+                "  G - Toggle reference grid"
             ]
             
             for line in instructions:
@@ -171,10 +240,16 @@ class OpticalCenterVisualizer:
             cv2.putText(frame, "Press H for help", (20, 55),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
         
-        # Optical center coordinates (always show)
+        # Optical center coordinates and status (always show)
         coord_text = f"Optical Center: ({self.cx:.1f}, {self.cy:.1f}) px"
-        cv2.putText(frame, coord_text, (10, frame.shape[0] - 20),
+        status_y = frame.shape[0] - 20
+        cv2.putText(frame, coord_text, (10, status_y),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        
+        # Show that we're using raw image coordinates
+        raw_text = "RAW image (for accurate calibration)"
+        cv2.putText(frame, raw_text, (10, status_y - 25),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
         
         return frame
     
@@ -187,10 +262,14 @@ class OpticalCenterVisualizer:
         print("  Q - Quit")
         print("  S - Save screenshot")
         print("  H - Toggle help overlay")
+        print("  G - Toggle reference grid")
         print("="*60)
         print("\nShowing optical center marker...")
         print("Place a marker on the platform under the RED CROSSHAIR")
-        print("Then measure the distance from robot base to this marker\n")
+        print("Then measure the distance from robot base to this marker")
+        print("Note: Showing RAW image (no undistortion) for accurate calibration")
+        print("      The optical center coordinates are in raw image space")
+        print("Green corner markers verify full frame is visible (no cropping)\n")
         
         frame_count = 0
         
@@ -201,13 +280,34 @@ class OpticalCenterVisualizer:
                     print("Failed to capture frame")
                     break
                 
-                # Draw crosshair at optical center
+                # IMPORTANT: We show the RAW (distorted) image because the optical center
+                # (cx, cy) from calibration is in the raw image coordinate system.
+                # Undistortion would remap pixels and make the crosshair position incorrect.
+                # For calibration measurements, we need the raw image coordinates.
+                
+                # Draw reference grid (optional, can be toggled with 'G' key)
+                if self.show_grid:
+                    frame = self.draw_reference_grid(frame, step=100)
+                
+                # Draw crosshair at optical center on RAW image
+                # cx, cy are in the original (distorted) image coordinate system
                 frame = self.draw_crosshair(frame, self.cx, self.cy, 
                                            color=(0, 0, 255), size=50, thickness=3)
                 
                 # Draw additional reference circles
                 cv2.circle(frame, (int(self.cx), int(self.cy)), 100, (0, 0, 255), 2)
                 cv2.circle(frame, (int(self.cx), int(self.cy)), 150, (0, 0, 255), 1)
+                
+                # Draw corner markers to verify no cropping
+                corner_size = 20
+                cv2.line(frame, (0, 0), (corner_size, 0), (0, 255, 0), 2)  # Top-left
+                cv2.line(frame, (0, 0), (0, corner_size), (0, 255, 0), 2)
+                cv2.line(frame, (self.width-1, 0), (self.width-1-corner_size, 0), (0, 255, 0), 2)  # Top-right
+                cv2.line(frame, (self.width-1, 0), (self.width-1, corner_size), (0, 255, 0), 2)
+                cv2.line(frame, (0, self.height-1), (corner_size, self.height-1), (0, 255, 0), 2)  # Bottom-left
+                cv2.line(frame, (0, self.height-1), (0, self.height-1-corner_size), (0, 255, 0), 2)
+                cv2.line(frame, (self.width-1, self.height-1), (self.width-1-corner_size, self.height-1), (0, 255, 0), 2)  # Bottom-right
+                cv2.line(frame, (self.width-1, self.height-1), (self.width-1, self.height-1-corner_size), (0, 255, 0), 2)
                 
                 # Draw info overlay
                 frame = self.draw_info(frame)
@@ -228,6 +328,9 @@ class OpticalCenterVisualizer:
                     print(f"Screenshot saved: {filename}")
                 elif key == ord('h') or key == ord('H'):
                     self.show_help = not self.show_help
+                elif key == ord('g') or key == ord('G'):
+                    self.show_grid = not self.show_grid
+                    print(f"Reference grid: {'ON' if self.show_grid else 'OFF'}")
                 
                 frame_count += 1
         

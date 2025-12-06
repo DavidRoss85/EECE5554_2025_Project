@@ -1,260 +1,89 @@
-# PincherX100 Camera Calibration
+# Camera Calibration
 
-Complete camera calibration and streaming setup for the PincherX100 robotic arm with a UVC camera.
+Camera calibration measures the camera's intrinsic parameters (focal length, optical center, lens distortion). This is needed to convert pixel coordinates to real-world 3D coordinates.
 
-## Overview
+## What We Have
 
-This package provides:
-- **Printable checkerboard pattern** for camera calibration (small 10.5cm x 9cm version)
-- **Camera streaming** from Raspberry Pi to Mac
-- **Camera calibration** tools using OpenCV (Zhang's method)
-- **Hand-eye calibration** (coming soon) to relate camera coordinates to robot coordinates
+- **`camera_calibration.npz`**: Camera calibration file (already done)
+- **`camera_calibration.json`**: Same data in JSON format
 
-## Quick Start
+## What Camera Calibration Does
 
-### 1. Print the Checkerboard
+Measures:
+1. **Camera matrix** (focal length fx, fy and optical center cx, cy)
+2. **Distortion coefficients** (lens distortion parameters)
+3. **Image size** (1280×720 pixels)
 
-**For US Letter printers (8.5" × 11"):**
+This allows us to:
+- Convert pixel (u,v) → normalized coordinates
+- Account for lens distortion
+- Calculate 3D position from 2D image
 
-Open `checkerboard_6x7_large_US_letter.svg` and print it:
-- **Print at 100% scale** (do not scale to fit page)
-- Print on white paper or cardstock
-- **CRITICAL:** After printing, **measure actual square size with ruler**
-- Designed size: 24mm squares, but use YOUR measured size!
-- Total size: **16.8cm x 19.2cm** (fits on US Letter paper ✓)
-- Mount on a **rigid flat surface** (foam board, cardboard, or wood)
-- Ensure the pattern is perfectly flat
+## Files
 
-**Important:** The actual printed size doesn't matter as long as you measure it accurately!
+### Calibration Data
+- `camera_calibration.npz` - NumPy format (used by Python)
+- `camera_calibration.json` - JSON format (human-readable)
 
-*(Alternative patterns: `checkerboard_6x5_small.svg`, `checkerboard_8x6.svg`)*
+### Calibration Scripts
+- `calibrate_camera.py` - Calibrate from checkerboard images
+- `calibrate_camera_web.py` - Calibrate using web camera
+- `test_calibration.py` - Test calibration quality
 
-### 2. Install Dependencies on Raspberry Pi
+### Checkerboard Patterns
+- `checkerboard_6x7_large_US_letter.svg` - Large checkerboard (24mm squares)
+- `checkerboard_6x7_tiny_US_letter.svg` - Small checkerboard
+
+### Other
+- `calibration_images/` - Images used for calibration
+- `requirements.txt` - Python dependencies
+- `venv/` - Python virtual environment
+
+## Re-calibrating (if needed)
+
+### 1. Print Checkerboard
+
+Print `checkerboard_6x7_large_US_letter.svg` at 100% scale on US Letter paper.
+Verify square size is 24mm × 24mm.
+
+### 2. Capture Images
 
 ```bash
 cd /home/jx/Dev/Robotics/pincherx100/camera_calibration
-python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+python calibrate_camera_web.py
 ```
 
-### 3. Start Camera Stream Server (on Raspberry Pi)
+- Hold checkerboard at different angles and positions
+- Press SPACE to capture image (need 15-20 images)
+- Press Q when done
+- Calibration will run automatically
+
+### 3. Test Calibration
 
 ```bash
-# Make sure you're in the virtual environment
-source venv/bin/activate
-
-# Start the streaming server
-python camera_stream_server.py --camera 0 --port 5000
-
-# The server will display its IP address
-# Example output:
-#   Access camera stream from your Mac:
-#      Browser:  http://192.168.1.100:5000
-#      Direct:   http://192.168.1.100:5000/video_feed
+python test_calibration.py
 ```
 
-### 4. View Stream on Mac
+Shows reprojection error (should be < 1 pixel for good calibration).
 
-**Option A: Web Browser**
-```bash
-# Open browser and go to:
-http://<raspberry_pi_ip>:5000
-```
+## Why Not Hand-Eye Calibration?
 
-**Option B: OpenCV Client (better for calibration)**
-```bash
-# On your Mac, install dependencies first
-pip install opencv-python numpy
+Hand-eye calibration finds the transformation between camera and robot. We **don't use it** because:
 
-# Run the client
-python camera_stream_client.py --ip <raspberry_pi_ip> --port 5000
+1. **Simple geometry is sufficient**: We know camera position (0, 0.21, 0.51)
+2. **Faster**: No calibration procedure needed
+3. **More reliable**: No accumulation of calibration errors
+4. **Easier to understand**: Direct geometric transformation
 
-# Controls:
-#   ESC or Q - Quit
-#   S - Save snapshot
-```
+We only need camera intrinsic calibration (what we have) for accurate pixel→3D conversion.
 
-### 5. Calibrate Camera (on Raspberry Pi)
+## Technical Details
 
-```bash
-# Make sure camera is connected
-source venv/bin/activate
+Camera calibration uses Zhang's method with a planar checkerboard pattern:
+1. Capture multiple images of checkerboard at different poses
+2. Detect checkerboard corners in each image
+3. Solve for camera matrix and distortion coefficients
+4. Minimize reprojection error
 
-# Use large checkerboard (6x7 inner corners) for hand-eye calibration
-# IMPORTANT: Use YOUR measured square size (e.g., if you measured 24mm):
-python calibrate_camera.py --camera 0 --pattern 6x7 --square 24
-
-# If your squares measured differently (e.g., 23mm), use that:
-# python calibrate_camera.py --camera 0 --pattern 6x7 --square 23
-
-# Follow the on-screen instructions:
-# 1. Hold checkerboard in front of camera
-# 2. Move it to different positions and orientations
-# 3. When green corners appear, press SPACE to capture
-# 4. Capture 15-20 images from various angles
-# 5. Press 'C' to calculate calibration
-```
-
-**Tips for good calibration:**
-- Capture images at different distances (close and far)
-- Capture images at different angles (tilted in all directions)
-- Cover all parts of the image (corners, edges, center)
-- Make sure the pattern is detected clearly (green corners visible)
-- Aim for reprojection error < 0.5 pixels (< 1.0 is acceptable)
-
-### 6. Test Calibration
-
-```bash
-# View undistorted video to verify calibration
-python test_calibration.py --camera 0 --calib camera_calibration.npz
-```
-
-## Files Description
-
-| File | Description |
-|------|-------------|
-| `checkerboard_6x7_large_US_letter.svg` | **FOR HAND-EYE CALIBRATION:** Large (6×7 corners, 24mm, 16.8×19.2cm) |
-| `checkerboard_6x7_tiny_US_letter.svg` | Small checkerboard (6×7 corners, 12mm, 8.4×9.6cm) - for camera intrinsic calibration |
-| `checkerboard_6x5_small.svg` | Small checkerboard (6×5 corners, 15mm, 10.5×9cm) |
-| `checkerboard_8x6.svg` | Large checkerboard (8×6 corners, 25mm, 22.5×17.5cm) |
-| `camera_stream_server.py` | HTTP/MJPEG streaming server for Raspberry Pi |
-| `camera_stream_client.py` | OpenCV-based client viewer for Mac |
-| `calibrate_camera.py` | Interactive camera calibration tool |
-| `test_calibration.py` | Test and visualize calibration results |
-| `requirements.txt` | Python dependencies |
-| `camera_calibration.npz` | Saved calibration data (created after calibration) |
-| `camera_calibration.json` | Human-readable calibration data (created after calibration) |
-| `calibration_images/` | Directory with captured calibration images (created during calibration) |
-
-## Calibration Data Format
-
-After calibration, two files are created:
-
-**camera_calibration.npz** (NumPy format for OpenCV):
-- `camera_matrix` - 3x3 camera intrinsic matrix
-- `dist_coeffs` - Distortion coefficients (k1, k2, p1, p2, k3)
-- `image_size` - Image width and height
-- `calibration_error` - Reprojection error in pixels
-
-**camera_calibration.json** (Human-readable):
-```json
-{
-  "camera_matrix": [[fx, 0, cx], [0, fy, cy], [0, 0, 1]],
-  "dist_coeffs": [[k1, k2, p1, p2, k3]],
-  "image_size": [width, height],
-  "calibration_error": 0.25,
-  "pattern_size": [8, 6],
-  "square_size": 25.0,
-  "calibration_date": "2025-11-26T...",
-  "num_images": 18
-}
-```
-
-## Camera Stream Details
-
-The streaming server provides:
-- **HTTP/MJPEG stream** accessible from any browser
-- **Real-time video** at 30 FPS (1280x720)
-- **Web interface** with instructions and info
-- **Direct stream URL** for integration with other tools
-
-Stream endpoints:
-- `http://<ip>:5000/` - Web interface
-- `http://<ip>:5000/video_feed` - Direct MJPEG stream
-
-## Next Steps: Hand-Eye Calibration
-
-After camera calibration, you can perform hand-eye calibration to determine the transformation between:
-- Camera coordinate system
-- Robot base coordinate system
-
-This allows you to:
-- Move the robot to positions seen by the camera
-- Pick and place objects detected by the camera
-- Perform visual servoing
-
-*Hand-eye calibration script coming soon!*
-
-## Understanding Calibration Results
-
-### Camera Matrix (Intrinsic Parameters)
-```
-[[fx,  0, cx],
- [ 0, fy, cy],
- [ 0,  0,  1]]
-```
-- `fx`, `fy`: Focal lengths in pixels
-- `cx`, `cy`: Principal point (optical center)
-
-### Distortion Coefficients
-- `k1`, `k2`, `k3`: Radial distortion
-- `p1`, `p2`: Tangential distortion
-
-### Reprojection Error
-- **< 0.5 pixels**: Excellent calibration
-- **0.5 - 1.0 pixels**: Good calibration
-- **> 1.0 pixels**: May need recalibration
-
-## Troubleshooting
-
-### Camera not detected
-```bash
-# List available cameras
-ls /dev/video*
-
-# Test camera directly
-python -c "import cv2; cap=cv2.VideoCapture(0); print(cap.isOpened())"
-```
-
-### Checkerboard not detected
-- Ensure good lighting
-- Make sure pattern is flat and not warped
-- Try adjusting camera focus
-- Move pattern closer or farther (small pattern may need to be closer)
-- Verify pattern size matches (6x5 inner corners for small version)
-
-### Stream not accessible from Mac
-```bash
-# On Raspberry Pi, check firewall
-sudo ufw status
-sudo ufw allow 5000/tcp
-
-# Test locally first
-curl http://localhost:5000
-
-# Check if server is listening
-netstat -tuln | grep 5000
-```
-
-### Poor calibration results (high error)
-- Capture more images (20-25)
-- Use more varied positions and angles
-- Ensure checkerboard is perfectly flat
-- Check lighting conditions
-- Verify square size is exactly 15mm (for small version)
-
-### About Zhang's Calibration Method
-- The calibration uses **Zhang's method** (Zhengyou Zhang, 1999)
-- This is OpenCV's standard `cv2.calibrateCamera()` function
-- It's the most widely used camera calibration technique
-- Calculates camera intrinsics from multiple checkerboard views
-
-## References
-
-- [OpenCV Camera Calibration Tutorial](https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html)
-- [Camera Calibration Theory](https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html)
-- [Hand-Eye Calibration](https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html#gaebfc1c9f7434196a374c382abf43439b)
-
-## License
-
-MIT License - See main project LICENSE file
-
----
-
-**Need Help?**
-- Check camera connections and permissions
-- Verify Python dependencies are installed
-- Review error messages for specific issues
-- Test camera with simple OpenCV script first
-
+The calibration is independent of the robot - it only measures the camera properties.

@@ -105,8 +105,8 @@ POSITION_LIMITS = {}
 DEGREES_PER_STEP = {
     ID_BASE: 2,        # Gentle, precise base rotation
     ID_SHOULDER: 8,    # Larger steps for torque (can't lift at 6 degrees)
-    ID_ELBOW: 6,       # Gentle elbow movement
-    ID_WRIST: 3,       # Gentle wrist movement
+    ID_ELBOW: 8,       # Gentle elbow movement
+    ID_WRIST: 6,       # Gentle wrist movement
 }
 
 # Convert degrees to position steps (XL430 has 4096 positions per 360 degrees)

@@ -61,7 +61,7 @@ camera:
   # Camera position relative to robot base center (in meters)
   position:
     x: 0.0    # Centered on base in X direction
-    y: 0.15   # 150mm forward from base center
+    y: 0.09   # 150mm forward from base center
     z: 0.70   # 700mm above platform
   
   # Camera orientation (top-down view, pointing down)
@@ -156,9 +156,10 @@ coordinate_transform:
   
   # Axis offset calibration (in meters)
   # Adjust these if detected positions don't match actual measurements
+  # RESET TO ZERO FOR TESTING - Actual position: (0, 0.16, 0.12) meters
   x_offset: 0.0    # X-axis correction
-  y_offset: 0.084  # Y-axis correction (if detected 0.116m but actual is 0.20m, set to ~0.084)
-  z_offset: 0.482  # Z-axis correction (if detected -0.482m but actual is 0, set to 0.482)
+  y_offset: 0.0    # Y-axis correction
+  z_offset: 0.0    # Z-axis correction
 
 # Logging configuration
 logging:

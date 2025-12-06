@@ -147,13 +147,122 @@ This ensures stable picking with consistent end-effector orientation.
 | Apple Drop Zone | 11 |
 | Yogurt Drop Zone | 12 |
 
-## Generate Tags
+## Generate AprilTags
+
+### Quick Start
+
+Generate all tags for the three bottle system (1.0 inch size):
 
 ```bash
-python scripts/generate_apriltag_pdf.py --all --size 1.0
+python scripts/generate_apriltag_pdf.py --all --size 1.0 --multi
 ```
 
-Print at 100% scale. Verify size is exactly 1.0 inch (25.4mm).
+This creates `apriltags_sheet.pdf` with all 6 tags (0, 1, 2, 10, 11, 12) on one sheet.
+
+### Detailed Usage
+
+**Generate all tags on one sheet:**
+```bash
+python scripts/generate_apriltag_pdf.py --all --size 1.0 --multi
+```
+
+**Generate specific tags:**
+```bash
+# Generate tags 0, 1, 2 on one sheet
+python scripts/generate_apriltag_pdf.py --id 0 1 2 --size 1.0 --multi
+
+# Generate individual PDFs for each tag
+python scripts/generate_apriltag_pdf.py --id 0 1 2 --size 1.0
+```
+
+**Generate single tag:**
+```bash
+python scripts/generate_apriltag_pdf.py --id 0 --size 1.0
+```
+
+**Custom output filename:**
+```bash
+python scripts/generate_apriltag_pdf.py --all --size 1.0 --multi --output my_tags.pdf
+```
+
+**Adjust layout (tags per row):**
+```bash
+python scripts/generate_apriltag_pdf.py --all --size 1.0 --multi --tags-per-row 3
+```
+
+### Command Options
+
+- `--id <id1> <id2> ...` - Generate specific tag IDs (default: 0 1 2)
+- `--all` - Generate all tags for three bottle system (0, 1, 2, 10, 11, 12)
+- `--size <inches>` - Tag size in inches (default: 1.0)
+- `--multi` - Generate multiple tags on one sheet
+- `--output <filename>` - Custom output filename
+- `--tags-per-row <n>` - Number of tags per row for multi-tag sheet (default: 2)
+
+### Printing Instructions
+
+**CRITICAL: Print at actual size (100% scale)**
+
+1. **Open PDF in PDF viewer** (Adobe Reader, Evince, etc.)
+2. **Print settings:**
+   - Set scaling to **100%** or **"Actual Size"**
+   - **DO NOT** use "Fit to Page" or "Shrink to Fit"
+   - **DO NOT** use any automatic scaling
+3. **Verify size after printing:**
+   - Measure the printed tag with a ruler
+   - Should be exactly **1.0 inch (25.4 mm)** for default size
+   - If incorrect, check printer settings and reprint
+4. **Cut out tags:**
+   - Cut carefully along the edges
+   - Keep corners square
+   - Avoid wrinkles or creases
+5. **Attach to bottles:**
+   - Place tag on top of bottle (flat surface)
+   - Ensure tag is visible to camera
+   - Keep tag flat and unwrinkled
+
+### Tag ID Mapping
+
+| Tag ID | Object |
+|--------|--------|
+| 0 | Orange Bottle |
+| 1 | Apple Bottle |
+| 2 | Yogurt Bottle |
+| 10 | Orange Drop Zone |
+| 11 | Apple Drop Zone |
+| 12 | Yogurt Drop Zone |
+
+### Update Configuration
+
+After generating tags, ensure `robot_config.yaml` has the correct tag size:
+
+```yaml
+apriltags:
+  tag_size: 0.0254  # 1.0 inch in meters (25.4 mm)
+```
+
+If you use a different size (e.g., 0.5 inch), update accordingly:
+- 0.5 inch = 0.0127 meters
+- 1.5 inch = 0.0381 meters
+
+### Troubleshooting
+
+**Tags not detected:**
+- Verify tag size matches configuration (measure printed tag)
+- Check tag is flat and not wrinkled
+- Ensure good lighting (tags need contrast)
+- Verify tag is in camera's field of view
+
+**Wrong tag size after printing:**
+- Check printer settings (disable all scaling)
+- Some printers have "Scale to Fit" enabled by default
+- Try printing from different PDF viewer
+- Measure and adjust `--size` parameter if needed
+
+**Tags look distorted:**
+- Ensure printer is printing at 100% scale
+- Check paper is loaded correctly
+- Verify PDF viewer is not applying scaling
 
 ## Calibration Tools
 
