@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# Script to be used in conjunction with Gazebo for running simulation
 echo "Starting simulated approach..."
 echo "Updating permissions..."
 chmod +x ./launch_turtlebot_simulation.sh ./launch_robosync_node.sh ./launch_detection_node.sh ./launch_location_node.sh ./launch_map_node.sh ./launch_map_viewer.sh ./launch_approach_controller.sh

@@ -1,10 +1,10 @@
 /oakd:
   ros__parameters:
     camera:
-      i_enable_imu: false
-      i_enable_ir: false
-      i_floodlight_brightness: 0
-      i_laser_dot_brightness: 100
+      i_enable_imu: true
+      i_enable_ir: true
+      i_floodlight_brightness: 100
+      i_laser_dot_brightness: 800
       i_nn_type: none
       i_pipeline_type: RGBD
       i_usb_speed: SUPER
@@ -24,4 +24,10 @@
       i_width: 320
       i_height: 240
       i_fps: 15.0
+    left:
+      i_fps: 15.0
+      i_publish_topic: true
+    right:
+      i_fps: 15.0
+      i_publish_topic: true
     use_sim_time: false

@@ -5,17 +5,12 @@ import numpy as np
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 from geometry_msgs.msg import TwistStamped
 from std_msgs.msg import String
-from sensor_msgs.msg import Image
 from .navigator_node import NavigatorSetupNode
 
 from object_location_interfaces.msg import(
-  RSyncDetectionList, 
-  DetectedItem, 
-  RoboSync,
-  LocationList,
+
   ItemLocation as ItemData,
   RSyncLocationList  
 ) 
