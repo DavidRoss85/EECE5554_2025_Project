@@ -147,23 +147,6 @@ class RoboSyncNode(Node):
         self.get_logger().error(f'Error in {function_name}: {str(error)}. {custom_message}')
 
 
-    def set_intial_pose(self):
-        #Testing:
-        posepub = self.create_publisher(
-            PoseWithCovarianceStamped,
-            'initialpose',
-            self.__max_msg
-        )
-        self.set_intial_pose()
-        msg = PoseWithCovarianceStamped()
-        msg.header.frame_id = 'map'
-        msg.header.stamp = rclpy.time.Time().to_msg()
-        msg.pose.pose.position.x = 0.0
-        msg.pose.pose.position.y = 0.0
-        msg.pose.pose.orientation.w = 1.0
-
-        posepub.publish(msg)
-
 def main(args=None):
     rclpy.init(args=args)
     robo_sync_node = RoboSyncNode()
